@@ -45,8 +45,10 @@ def main():
                           action="store_true",
                           help="Don't ask for keyboard input")
 
-    subparsers.add_parser("serve",
+    serve_cmd = subparsers.add_parser("serve",
                           help="Run webserver for gallery")
+    serve_cmd.add_argument('--port', type=int, default="8000",
+                           help='Port to listen on')
 
     args = parser.parse_args()
     if not args.command:
@@ -83,4 +85,4 @@ def command_init(args):
 
 def command_serve(args):
     call_command("migrate", verbosity=0, interactive=False)
-    return call_command("runserver", verbosity=1)
+    return call_command("runserver", verbosity=1, addrport=str(args.port))
