@@ -34,10 +34,11 @@
   .gallery-items {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    grid-gap: 1rem;
+    grid-gap: 0.5rem;
     align-items: center;
     padding: 0.5em;
     user-select: none;
+    overflow-wrap: break-word;
   }
   .gallery-item {
     border: 1px solid #d0d0d0;
@@ -110,9 +111,9 @@ function pointInRect(point, rect) {
  * selecting items is modeled after thunar:
  *   * Click or drag to select
  *   * Click or drag with ctrl held down to toggle selection of items.
- * TODO: Not yet implemented:
  *   * Click with shift held down to select only items between the last
  *     selected item and the clicked item.
+ * TODO: Not yet implemented:
  *   * Keyboard support
  *   * aria-selected for accessibility
  *       See: https://www.stefanjudis.com/blog/aria-selected-and-when-to-use-it/
@@ -130,6 +131,7 @@ export default {
       mouseDown: false,
       selectStart: null,
       selectEnd: null,
+      lastSelectedItem: null,
       selectedItemCounter: 1,
     };
   },
@@ -192,6 +194,32 @@ export default {
     },
     onMouseDown(event) {
       if(event.button !== 0) return;
+      this.selectToggle = event.ctrlKey;
+
+      // Shift-click: select all between last selected and the clicked item.
+      if(event.shiftKey && this.lastSelectedItem) {
+        var itemName = this.getItemAt(event.pageX, event.pageY);
+        if(itemName != null) {
+          var lastSelectedIdx = this.items.findIndex(item => item.name == this.lastSelectedItem);
+          var clickedIdx = this.items.findIndex(item => item.name == itemName);
+          var firstIdx = Math.min(lastSelectedIdx, clickedIdx);
+          var lastIdx = Math.max(lastSelectedIdx, clickedIdx);
+          if(firstIdx != -1 && lastIdx != -1) {
+            if(!event.ctrlKey) {
+              this._selectedItems.clear();
+            }
+            for(var i=firstIdx; i<=lastIdx; i++) {
+              if(event.ctrlKey && this._selectedItems.has(name)) {
+                this._selectedItems.delete(this.items[i].name);
+              } else {
+                this._selectedItems.add(this.items[i].name);
+              }
+            }
+            this.selectedItemCounter++;
+          }
+          return;  // Don't drag if shift-click succeeded on an item
+        }
+      }
 
       // Set state and listeners for dragging
       this.mouseDown = true;
@@ -204,15 +232,13 @@ export default {
       window.addEventListener("mouseup", this.onMouseUp);
 
       // Clear selection if ctrl isn't held down
-      if(event.ctrlKey) {
-        this.selectToggle = true;
-      } else {
-        this.selectToggle = false;
+      if(!this.selectToggle) {
         this._selectedItems.clear();
         // If drag starts on an item, go ahead and select that item.
         var clickedItem = this.getItemAt(event.pageX, event.pageY);
-        if(clickedItem) {
+        if(clickedItem !== null) {
           this._selectedItems.add(clickedItem);
+          this.lastSelectedItem = clickedItem;
         }
         this.selectedItemCounter++;
       }
@@ -248,6 +274,7 @@ export default {
           this._selectedItems.delete(name);
         } else {
           this._selectedItems.add(name);
+          this.lastSelectedItem = name;
         }
       }
       this.selectedItemCounter++;
@@ -256,6 +283,9 @@ export default {
       if(event.button !== 0) return;
 
       // This is a mouse click if the mouse hasn't moved since mouse down
+      // TODO: for accessability, we should probably consider it a mouse click
+      //       if the mouse hasn't moved outside of the clicked item, or if
+      //       onMouseUp and onMouseDown are within the same item.
       if(this.selectEnd === null) {
         var name = this.getItemAt(event.pageX, event.pageY);
         this.onItemClick(name, event);
@@ -272,12 +302,14 @@ export default {
     onItemClick(name, event) {
       if(!event.ctrlKey) {
         this._selectedItems = new Set();
+        this.lastSelectedItem = null;
       }
-      if(name) {
+      if(name != null) {
         if(this.selectToggle && this.oldSelectedItems.has(name)) {
           this._selectedItems.delete(name);
         } else {
           this._selectedItems.add(name);
+          this.lastSelectedItem = name;
         }
       }
       this.selectedItemCounter++;
