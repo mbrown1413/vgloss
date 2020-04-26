@@ -1,8 +1,41 @@
 <template>
-  <GalleryGrid
-    :items="items"
-  />
+  <div class="gallery">
+    <div style="overflow-y: scroll;">
+      <GalleryGrid
+        :items="items"
+        :selectedItems="selectedItems"
+        v-model="selectedItems"
+      />
+    </div>
+    <div
+      v-if="selectedItems"
+      class="gallery-detail-pane"
+    >
+      <div v-for="item in selectedItems" :key="item">
+        {{ item }}
+      </div>
+    </div>
+  </div>
 </template>
+
+<style>
+  .gallery {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr min-content;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+  .gallery-detail-pane {
+    background-color: #cccccc;
+    border-top: black 2px solid;
+    padding-top: 1em;
+    padding-bottom: 1em;
+  }
+</style>
 
 <script>
 import GalleryGrid from '../GalleryGrid.vue';
@@ -14,6 +47,7 @@ export default {
   },
   data() {
     return {
+      selectedItems: [],
       items: [
         {name: "Blah 1", image: "http://placekitten.com/300/300"},
         {name: "Blah 2", image: "http://placekitten.com/200/500"},

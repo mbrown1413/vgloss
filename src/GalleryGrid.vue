@@ -9,7 +9,8 @@
       >
         <div
           class="gallery-item"
-          :class="{'gallery-item-selected': selectedItems.has(item.name)}"
+          :class="{'gallery-item-selected': selectedItemSet.has(item.name)}"
+          @dblclick="$emit('doubleClick', item.name)"
         >
           <div
             class="gallery-item-image"
@@ -29,6 +30,7 @@
 <style>
   /* Grid Item Layout */
   .gallery-grid {
+    /* Ensures user can click below any items to drag or clear selection */
     height: 100%;
   }
   .gallery-items {
@@ -54,7 +56,7 @@
     background-size: contain;
     background-repeat: no-repeat;
     /* Padding trick to fix aspect ratio:
-     * https://stackoverflow.com/questions/1495407/maintain-the-aspect-ratio-of-a-div-with-css
+     * https://css-tricks.com/aspect-ratio-boxes/
      */
     width: 100%;
     padding-bottom: 100%;
@@ -125,7 +127,17 @@ export default {
       type: Array,
       required: true,
     },
+    selectedItems: {
+      type: Array,
+      required: false,
+      default: () => [],
+    },
   },
+  model: {
+    prop: "selectedItems",
+    event: "change",
+  },
+
   data() {
     return {
       mouseDown: false,
@@ -135,16 +147,11 @@ export default {
       selectedItemCounter: 1,
     };
   },
+
   created() {
-    // Since Vue can't react to Set changes, we do a bit of a hack here. The
-    // counter selectedItemCounter will increment whenever we add/remove items.
-    // _selectedItems contains the actual set, while the computed property
-    // selectedItems can be used as normal. Of course, you have to increment
-    // the counter whenever _selectedItems changes.
-    // TODO: Support for watching Sets is planned for Vue 3!
-    //       https://github.com/vuejs/vue/issues/2410
-    this._selectedItems = new Set();
+    this._selectedItemSet = new Set(this.selectedItems);
   },
+
   computed: {
     selectRect() {
       if(this.mouseDown && this.selectStart && this.selectEnd) {
@@ -161,6 +168,24 @@ export default {
         return null;
       }
     },
+
+    /* Since Vue can't react to Set changes, we do a bit of a hack here. The
+     * counter selectedItemCounter will increment whenever we add/remove items.
+     * selectedItemSet contains the actual set, while the computed property
+     * selectedItems can be used as normal. Of course, you have to increment
+     * the counter whenever selectedItemSet changes. Using selectionAdd,
+     * selectionDelete, selectionToggle, etc. will handle this seamlessly.
+     * TODO: Support for watching Sets is planned for Vue 3!
+     *        https://github.com/vuejs/vue/issues/2410
+     */
+    selectedItemSet() {
+      if(this.selectedItemCounter > 0) {  // Always True
+        return this._selectedItemSet || new Set(this.selectedItems);
+      } else {
+        return this._selectedItemSet || new Set(this.selectedItems);
+      }
+    },
+
     selectOverlayStyle() {
       if(this.selectRect) {
         return {
@@ -174,15 +199,12 @@ export default {
         return {display: "none"};
       }
     },
-    selectedItems() {
-      if(this.selectedItemCounter > -1) {
-        return this._selectedItems;
-      } else {
-        return this._selectedItems;
-      }
-    },
+
   },
   methods: {
+
+    /********** Helper Methods **********/
+
     getItemAt(x, y) {
       for(var item of this.items) {
         var itemElement = this.$refs["item:"+item.name][0];
@@ -192,12 +214,65 @@ export default {
       }
       return null;
     },
+
+    /********** selectedItemSet mutation methods **********/
+
+    selectionSet(names) {
+      this._selectedItemSet = new Set(names);
+      if(names.length == 0) {
+        this.lastSelectedItem = null;
+      } else if(names.length == 1) {
+        this.lastSelectedItem = names[0];
+      }
+      this.selectedItemCounter++;
+    },
+
+    selectionAdd(name) {
+      if(!this._selectedItemSet.has(name)) {
+        this._selectedItemSet.add(name);
+        this.lastSelectedItem = name;
+        this.selectedItemCounter++;
+      }
+    },
+
+    selectionDelete(name) {
+      if(this._selectedItemSet.has(name)) {
+        this._selectedItemSet.delete(name);
+        this.selectedItemCounter++;
+      }
+    },
+
+    selectionToggle(name) {
+      if(this.oldSelectedItemSet.has(name)) {
+        this.selectionDelete(name);
+      } else {
+        this.selectionAdd(name);
+      }
+    },
+
+    /* Set reference point for selectionToggle to know if the previous
+     * selection had or didn't have the item. */
+    selectionStart() {
+      this.oldSelectedItemSet = new Set(this._selectedItemSet);
+    },
+
+    /* Roll back to selection from last time selectionStart() was called. */
+    selectionRollBack() {
+      this._selectedItemSet = new Set(this.oldSelectedItemSet);
+      this.selectedItemCounter++;
+    },
+
+    /********** Event Handling **********/
+
     onMouseDown(event) {
       if(event.button !== 0) return;
-      this.selectToggle = event.ctrlKey;
+      this.ctrlKey = event.ctrlKey;
+      this.shiftKey = event.shiftKey;
 
       // Shift-click: select all between last selected and the clicked item.
-      if(event.shiftKey && this.lastSelectedItem) {
+      if(this.shiftKey && this.lastSelectedItem) {
+        // Only listen to shift-click if an item was clicked. Otherwise behave
+        // normally.
         var itemName = this.getItemAt(event.pageX, event.pageY);
         if(itemName != null) {
           var lastSelectedIdx = this.items.findIndex(item => item.name == this.lastSelectedItem);
@@ -205,17 +280,21 @@ export default {
           var firstIdx = Math.min(lastSelectedIdx, clickedIdx);
           var lastIdx = Math.max(lastSelectedIdx, clickedIdx);
           if(firstIdx != -1 && lastIdx != -1) {
-            if(!event.ctrlKey) {
-              this._selectedItems.clear();
+            // Ctrl toggles items in current selection. Otherwise clear it.
+            if(!this.ctrlKey) {
+              this.selectionSet([]);
             }
             for(var i=firstIdx; i<=lastIdx; i++) {
-              if(event.ctrlKey && this._selectedItems.has(name)) {
-                this._selectedItems.delete(this.items[i].name);
+              if(this.ctrlKey) {
+                this.selectionToggle(this.items[i].name);
               } else {
-                this._selectedItems.add(this.items[i].name);
+                this.selectionAdd(this.items[i].name);
               }
             }
-            this.selectedItemCounter++;
+            // Reset last selected
+            // If the user performs multiple shift-clicks in a row, we want the
+            // range to start from the very initial lastSelectedItem.
+            this.lastSelectedItem = this.items[lastSelectedIdx].name;
           }
           return;  // Don't drag if shift-click succeeded on an item
         }
@@ -232,21 +311,19 @@ export default {
       window.addEventListener("mouseup", this.onMouseUp);
 
       // Clear selection if ctrl isn't held down
-      if(!this.selectToggle) {
-        this._selectedItems.clear();
+      if(!this.ctrlKey) {
         // If drag starts on an item, go ahead and select that item.
         var clickedItem = this.getItemAt(event.pageX, event.pageY);
         if(clickedItem !== null) {
-          this._selectedItems.add(clickedItem);
-          this.lastSelectedItem = clickedItem;
+          this.selectionSet([clickedItem]);
+        } else {
+          this.selectionSet([]);
         }
-        this.selectedItemCounter++;
       }
 
-      // Keep old selection behind for reference. If we didn't clear it,
-      // selectToggle will add/remove from the oldSelectedItems.
-      this.oldSelectedItems = new Set(this.selectedItems);
+      this.selectionStart();
     },
+
     onMouseMove(event) {
       if(!this.mouseDown) { return; }
 
@@ -266,19 +343,18 @@ export default {
       }
 
       // Update selection
-      // Use oldSelectedItems from when the drag started and modify it
-      // accordingly.
-      this._selectedItems = new Set(this.oldSelectedItems);
+      // Start by going back to the state at the beginning of the drag. Then
+      // add or toggle any items in the drag rectangle.
+      this.selectionRollBack();
       for(var name of itemsInRect) {
-        if(this.selectToggle && this.oldSelectedItems.has(name)) {
-          this._selectedItems.delete(name);
+        if(this.ctrlKey) {
+          this.selectionToggle(name);
         } else {
-          this._selectedItems.add(name);
-          this.lastSelectedItem = name;
+          this.selectionAdd(name);
         }
       }
-      this.selectedItemCounter++;
     },
+
     onMouseUp() {
       if(event.button !== 0) return;
 
@@ -288,7 +364,7 @@ export default {
       //       onMouseUp and onMouseDown are within the same item.
       if(this.selectEnd === null) {
         var name = this.getItemAt(event.pageX, event.pageY);
-        this.onItemClick(name, event);
+        this.onItemClick(name);
       }
 
       // Clear state for dragging
@@ -297,27 +373,48 @@ export default {
       window.removeEventListener('mouseup', this.onMouseUp)
       this.startPoint = null;
       this.selectEnd = null;
-      this.oldSelectedItems = null;
+      this.oldSelectedItemSet = null;
     },
-    onItemClick(name, event) {
-      if(!event.ctrlKey) {
-        this._selectedItems = new Set();
+
+    onItemClick(name) {
+      if(!this.ctrlKey) {
+        this.selectionSet([]);
         this.lastSelectedItem = null;
       }
       if(name != null) {
-        if(this.selectToggle && this.oldSelectedItems.has(name)) {
-          this._selectedItems.delete(name);
+        if(this.ctrlKey) {
+          this.selectionToggle(name);
         } else {
-          this._selectedItems.add(name);
-          this.lastSelectedItem = name;
+          this.selectionAdd(name);
         }
       }
-      this.selectedItemCounter++;
+    },
+
+  },
+  watch: {
+    selectedItemSet() {
+
+      // Detect if set has changed
+      var changed = this.selectedItemSet.size != this.selectedItems.length;
+      if(!changed) {
+        for(var name of this.selectedItems) {
+          if(!this.selectedItemSet.has(name)) {
+            changed = true;
+            break;
+          }
+        }
+      }
+
+      if(changed) {
+        this.$emit("change", Array.from(this.selectedItemSet));
+      }
     },
   },
+
   beforeDestroy() {
       window.removeEventListener('mousemove', this.onMouseMove)
       window.removeEventListener('mouseup', this.onMouseUp)
   },
+
 }
 </script>
