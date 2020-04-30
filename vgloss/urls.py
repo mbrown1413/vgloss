@@ -17,9 +17,13 @@ from django.contrib import admin
 from django.urls import path, re_path
 from django.conf import settings
 
-from . import views
+from . import views, api
 
 urlpatterns = [
+    path("api/gallery/query", api.GalleryQuery.as_view()),
+    path("api/image/<str:filename>/thumbnail", api.ImageThumbnail.as_view(), name="image-thumbnail"),
+    #TODO: Don't catch literally everything here. Just home, things in assets,
+    #      and whatever vue-router will actually handle.
     re_path('^.*', views.GalleryView.as_view(), name="gallery"),
 ]
 

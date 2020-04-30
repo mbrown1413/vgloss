@@ -1,1 +1,5 @@
 Django~=3.0
+djangorestframework
+
+# Detecting image filetypes
+python-magic
