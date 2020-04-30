@@ -30,7 +30,18 @@
 <style>
   /* Grid Item Layout */
   .gallery-grid {
-    /* Ensures user can click below any items to drag or clear selection */
+    /* Hide x overflow because the select overlay may "overflow" into the
+     * y-scrollbar. We wouldn't want an x-scrollbar to display when this
+     * happens. */
+    overflow-x: hidden;
+    /* Force a scrollbar on y even if not needed, so if items change and we
+     * need scroll, we don't make the jarring change of adding a scrollbar. */
+    overflow-y: scroll;
+    /* Non-static position forces the select overlay to be positioned relative
+     * to this. */
+    position: relative;
+    /* Ensures user can click in blank area below any items to drag or clear
+     * selection */
     height: 100%;
   }
   .gallery-items {
@@ -76,6 +87,41 @@
 </style>
 
 <script>
+
+/* Coordinate Systems
+ *
+ * Page coordinates:
+ *   Origin is the top left of the page, independent of where the browser is
+ *   currently scrolled.
+ * Client Coordinates:
+ *   Origin is at the top left of the window, dependent on where the browser is
+ *   currently scrolled.
+ * Element coordinates:
+ *   Relative to the top left of the gallery element, not affected by the
+ *   gallery element itself scrolling.
+ *
+ * Page and client coordinates are defined here:
+ *   https://javascript.info/coordinates
+ *
+ *            Page
+ * +........................+
+ * .Page     Element        .
+ * .coords ............     .
+ * .       .Element   .     .
+ * .       .coords    .     .
+ * +---------------------+  .
+ * |Client .          .  |  .
+ * |coords .          .  |  .
+ * |       +----------+  |  .
+ * |       |Gallery   |  |  .
+ * |       |Element   |  |  .
+ * |       +----------+  |  .
+ * |       .          .  |  .
+ * |       .          .  |  .
+ * |       ............  |  .
+ *
+ */
+
 /* Clip a rectangle by a bounding rectangle */
 function boundRect(rect, boundingRect) {
   return {
@@ -89,10 +135,10 @@ function boundRect(rect, boundingRect) {
 /* Return true if the two rectangles intersect. */
 function rectIntersect(rect1, rect2) {
   return !(
-    // One rect is to left/right of other
-    rect1.left >= rect2.right || rect2.left >= rect1.right ||
     // One rect is to above/below other
-    rect1.top >= rect2.bottom || rect2.top >= rect1.bottom
+    rect1.top >= rect2.bottom || rect2.top >= rect1.bottom ||
+    // One rect is to left/right of other
+    rect1.left >= rect2.right || rect2.left >= rect1.right
   )
 }
 
@@ -101,6 +147,7 @@ function pointInRect(point, rect) {
   return point.x >= rect.left && point.x <= rect.right &&
          point.y >= rect.top && point.y <= rect.bottom;
 }
+
 
 /* GalleryGrid
  * Displays a grid of items with names and icon images.
@@ -141,10 +188,11 @@ export default {
   data() {
     return {
       mouseDown: false,
-      selectStart: null,
-      selectEnd: null,
       lastSelectedItem: null,
       selectedItemCounter: 1,
+      // Start and end points of drag selection, in element coordinates.
+      selectStart: null,
+      selectEnd: null,
     };
   },
 
@@ -153,17 +201,15 @@ export default {
   },
 
   computed: {
+    /* Rectangle of selection box in element coordinates. */
     selectRect() {
       if(this.mouseDown && this.selectStart && this.selectEnd) {
-        return boundRect(
-          {
-            left:   Math.min(this.selectStart.x, this.selectEnd.x),
-            right:  Math.max(this.selectStart.x, this.selectEnd.x),
-            top:    Math.min(this.selectStart.y, this.selectEnd.y),
-            bottom: Math.max(this.selectStart.y, this.selectEnd.y),
-          },
-          this.$el.getBoundingClientRect()
-        );
+        return {
+          left:   Math.min(this.selectStart.x, this.selectEnd.x),
+          right:  Math.max(this.selectStart.x, this.selectEnd.x),
+          top:    Math.min(this.selectStart.y, this.selectEnd.y),
+          bottom: Math.max(this.selectStart.y, this.selectEnd.y),
+        };
       } else {
         return null;
       }
@@ -188,12 +234,16 @@ export default {
 
     selectOverlayStyle() {
       if(this.selectRect) {
+        // Bound display of selection so it doesn't cause scrolling.
+        var boundedRect = boundRect(
+          this.selectRect,
+          this.getElemRect(this.$el.getBoundingClientRect())
+        );
         return {
-          display: "block",
-          left: this.selectRect.left + "px",
-          top: this.selectRect.top + "px",
-          width: this.selectRect.right - this.selectRect.left + "px",
-          height: this.selectRect.bottom - this.selectRect.top + "px",
+          left: boundedRect.left + "px",
+          top: boundedRect.top  + "px",
+          width: boundedRect.right - boundedRect.left + "px",
+          height: boundedRect.bottom - boundedRect.top + "px",
         };
       } else {
         return {display: "none"};
@@ -205,6 +255,8 @@ export default {
 
     /********** Helper Methods **********/
 
+    /* Given page-coordinate (x, y), return the name of th gallery item at that
+     * position, or null. */
     getItemAt(x, y) {
       for(var item of this.items) {
         var itemElement = this.$refs["item:"+item.name][0];
@@ -213,6 +265,26 @@ export default {
         }
       }
       return null;
+    },
+
+    /* Given page-coordinates return the point in element coordinates. */
+    getElemPoint(x, y) {
+      var clientRect = this.$el.getBoundingClientRect();
+      return {
+        x: x - clientRect.left + this.$el.scrollLeft,
+        y: y - clientRect.top + this.$el.scrollTop,
+      };
+    },
+
+    /* Given page-coordinate rect, return it in element coordinates. */
+    getElemRect(rect) {
+      var clientRect = this.$el.getBoundingClientRect();
+      return {
+        left: rect.left - clientRect.left + this.$el.scrollLeft,
+        right: rect.right - clientRect.left + this.$el.scrollLeft,
+        top: rect.top - clientRect.top + this.$el.scrollTop,
+        bottom: rect.bottom - clientRect.top + this.$el.scrollTop,
+      };
     },
 
     /********** selectedItemSet mutation methods **********/
@@ -302,10 +374,7 @@ export default {
 
       // Set state and listeners for dragging
       this.mouseDown = true;
-      this.selectStart = {
-        x: event.pageX,
-        y: event.pageY,
-      };
+      this.selectStart = this.getElemPoint(event.pageX, event.pageY);
       this.selectEnd = null;
       window.addEventListener("mousemove", this.onMouseMove);
       window.addEventListener("mouseup", this.onMouseUp);
@@ -327,16 +396,20 @@ export default {
     onMouseMove(event) {
       if(!this.mouseDown) { return; }
 
-      this.selectEnd = {
-        x: event.pageX,
-        y: event.pageY,
-      };
+      // Act like mouseUp if the mouse isn't up anymore.
+      // This can happen if mouseUp happens with the mouse off the window.
+      if(event.buttons != 1) {
+        this.onMouseUp(event);
+        return;
+      }
+
+      this.selectEnd = this.getElemPoint(event.pageX, event.pageY);
 
       // Find items in the select rectangle
       var itemsInRect = new Set();
       for(var item of this.items) {
         var itemElement = this.$refs["item:"+item.name][0];
-        var itemRect = itemElement.getBoundingClientRect();
+        var itemRect = this.getElemRect(itemElement.getBoundingClientRect());
         if(rectIntersect(itemRect, this.selectRect)) {
           itemsInRect.add(item.name);
         }
@@ -355,7 +428,7 @@ export default {
       }
     },
 
-    onMouseUp() {
+    onMouseUp(event) {
       if(event.button !== 0) return;
 
       // This is a mouse click if the mouse hasn't moved since mouse down
@@ -369,8 +442,8 @@ export default {
 
       // Clear state for dragging
       this.mouseDown = false;
-      window.removeEventListener('mousemove', this.onMouseMove)
-      window.removeEventListener('mouseup', this.onMouseUp)
+      window.removeEventListener('mousemove', this.onMouseMove);
+      window.removeEventListener('mouseup', this.onMouseUp);
       this.startPoint = null;
       this.selectEnd = null;
       this.oldSelectedItemSet = null;
@@ -378,10 +451,13 @@ export default {
 
     onItemClick(name) {
       if(!this.ctrlKey) {
+        // Clear selection, either from a click outside any item, or a click on
+        // an item without ctrl held down to explicitly add to selection.
         this.selectionSet([]);
         this.lastSelectedItem = null;
       }
       if(name != null) {
+        // Select or toggle clicked item
         if(this.ctrlKey) {
           this.selectionToggle(name);
         } else {

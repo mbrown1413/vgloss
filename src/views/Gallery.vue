@@ -1,12 +1,10 @@
 <template>
   <div class="gallery">
-    <div style="overflow-y: scroll;">
       <GalleryGrid
         :items="items"
         :selectedItems="selectedItems"
         v-model="selectedItems"
       />
-    </div>
     <div
       v-if="selectedItems"
       class="gallery-detail-pane"
