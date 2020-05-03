@@ -21,7 +21,9 @@ from . import views, api
 
 urlpatterns = [
     path("api/gallery/query", api.GalleryQuery.as_view()),
-    path("api/image/<str:hash>/thumbnail", api.ImageThumbnail.as_view(), name="image-thumbnail"),
+
+    path("file/<str:hash>/raw", views.FileThumbnail.as_view()),
+    path("file/<str:hash>/thumbnail", views.FileThumbnail.as_view()),
 
     re_path('css/.*', views.DistFile.as_view()),
     re_path('js/.*', views.DistFile.as_view()),

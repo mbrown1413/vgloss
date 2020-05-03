@@ -14,7 +14,7 @@
         >
           <div
             class="gallery-item-image"
-            :style="{backgroundImage: 'url(/api/image/'+item.hash+'/thumbnail)'}"
+            :style="{backgroundImage: 'url(/file/'+item.hash+'/thumbnail)'}"
           />
           {{ item.name }}
         </div>
