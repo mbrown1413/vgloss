@@ -19,6 +19,7 @@ except KeyError:
     BASE_DIR = os.getcwd()
 
 DATA_DIR = os.path.join(BASE_DIR, ".vgloss")
+THUMBNAIL_DIR = os.path.join(DATA_DIR, "thumbnails")
 
 VGLOSS_CODE_DIR = os.path.dirname(__file__)
 
@@ -87,6 +88,11 @@ DATABASES = {
         'NAME': os.path.join(DATA_DIR, 'db.sqlite3'),
     }
 }
+
+# Install dummy database to get around database errors for commands that don't
+# actually need a database, like makemigrations.
+if os.environ.get("VGLOSS_DUMMY_DATABASE"):
+    DATABASES["default"] = {"ENGINE": "django.db.backends.dummy"}
 
 
 # Password validation

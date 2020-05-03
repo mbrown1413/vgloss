@@ -6,6 +6,12 @@ import sys
 
 def main():
     os.environ["DJANGO_SETTINGS_MODULE"] = "vgloss.settings"
+
+    # Install dummy database for makemigrations, since we won't actually have a
+    # database, but it wants one for doing some checks.
+    if sys.argv[1] == "makemigrations":
+        os.environ["VGLOSS_DUMMY_DATABASE"] = "true"
+
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

@@ -26,15 +26,17 @@ def read_dist_file(path):
     content = open(abspath, "rb" if is_bin else "r").read()
     return content, content_type, encoding
 
-class GalleryView(View):
+class DistFile(View):
+    fall_back_to_index = False
 
     def get(self, request, *args, **kwargs):
         content, content_type, encoding = read_dist_file(request.path)
-        if not content:
-            # Fallback to serving index.html
+
+        # Fallback to serving index.html
+        if self.fall_back_to_index and not content:
             content, content_type, encoding = read_dist_file("index.html")
-        if not content:
-            raise ValueError("Compiled javascript not found. Please run `yarn build`")
+            if not content:
+                raise ValueError("Compiled javascript not found. Please run `yarn build`")
 
         #TODO: This view should do some things that django.views.static.serve
         #      does. Namely:
@@ -48,3 +50,6 @@ class GalleryView(View):
         if encoding:
             response["Content-Encoding"] = encoding
         return response
+
+class VueSinglePage(DistFile):
+    fall_back_to_index = True

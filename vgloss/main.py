@@ -6,6 +6,7 @@ from django import setup
 from django.conf import settings
 from django.core.management import call_command
 
+
 def query_yes_no(question, default="yes"):
     """Ask a yes/no question via input() and return True/False answer.
 
@@ -50,13 +51,16 @@ def main():
     serve_cmd.add_argument('--port', type=int, default="8000",
                            help='Port to listen on')
 
+    subparsers.add_parser("scan",
+                          help="Detect new images and process them.")
+
     args = parser.parse_args()
     if not args.command:
         parser.print_help()
         return -1
 
     os.environ["DJANGO_SETTINGS_MODULE"] = "vgloss.settings"
-    if not args.command == "init":
+    if args.command != "init":
         setup()
         # Make sure BASE_DIR is an initialized gallery
         if not os.path.exists(settings.DATA_DIR):
@@ -64,10 +68,12 @@ def main():
             print(settings.BASE_DIR, file=sys.stderr)
             print('Run "vgloss init" to initialize it.', file=sys.stderr)
             sys.exit(-1)
+        call_command("migrate", verbosity=0, interactive=False)
 
     return dict(
         init=command_init,
         serve=command_serve,
+        scan=command_scan,
     )[args.command](args)
 
 def command_init(args):
@@ -84,5 +90,10 @@ def command_init(args):
     return call_command("migrate", verbosity=0, interactive=False)
 
 def command_serve(args):
-    call_command("migrate", verbosity=0, interactive=False)
     return call_command("runserver", verbosity=1, addrport=str(args.port))
+
+def command_scan(args):
+    from vgloss.scan import scan_all
+    from vgloss.thumbnail import generate_all_thumbnails
+    scan_all()
+    generate_all_thumbnails()
