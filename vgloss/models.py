@@ -1,19 +1,28 @@
 import os
+import json
 
 from django.db import models
 from django.conf import settings
 
 class File(models.Model):
-    hash = models.TextField(primary_key=True)
+    hash = models.TextField(primary_key=True) # SHA-512
 
-    # We track the versions so if code changes we can trigger an update.
+    # Track code versions so if code changes we can trigger an update.
     scan_version = models.PositiveIntegerField(blank=True, null=True, db_index=True)
     thumbnail_version = models.PositiveIntegerField(blank=True, null=True)
 
     # Scanned Data
-    SCAN_FIELDS = ("timestamp", "exif_json")
+    SCAN_FIELDS = ("timestamp", "metadata_json")
+    metadata_json = models.TextField(blank=True, null=True)
     timestamp = models.DateTimeField(blank=True, null=True, db_index=True)
-    exif_json = models.TextField(blank=True, null=True)
+
+    @property
+    def metadata(self):
+        return json.loads(self.metadata_json)
+
+    @metadata.setter
+    def metadata(self, data):
+        self.metadata_json = json.dumps(data)
 
     def get_thumbnail_path(self, _absent_ok=False):
         path = os.path.join(settings.THUMBNAIL_DIR, self.hash+".jpg")

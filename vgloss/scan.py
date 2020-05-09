@@ -1,5 +1,8 @@
 import os
+import json
 import hashlib
+import itertools
+import subprocess
 
 from django.conf import settings
 
@@ -17,7 +20,7 @@ def _list_paths(root):
 
 def _get_file_hash(abspath):
     assert os.path.isabs(abspath)
-    h = hashlib.md5()
+    h = hashlib.sha512()
     with open(abspath, "rb") as f:
         for chunk in iter(lambda: f.read(4096), b""):
             h.update(chunk)
@@ -113,15 +116,45 @@ def scan_all():
         models.File.objects.exclude(scan_version__gte=SCAN_VERSION)
     )
     for file_obj in outdated_files:
-        scan_file(file_obj)
+        filepath_obj = file_obj.paths.first()
+        scan_file(filepath_obj.abspath, file_obj)
     models.File.objects.bulk_update(outdated_files, models.File.SCAN_FIELDS)
 
-def scan_file(file_obj):
-    # Extract exif
-    #TODO
+def scan_file(abspath, file_obj):
+    """Extract data from file at abspath and store it in File file_obj.
+
+    Caller is responsible for actually saving the object.
+    """
+    file_obj.metadata = extract_metadata(abspath)
 
     # Extract time
     #TODO
 
     file_obj.scan_version = SCAN_VERSION
     file_obj.save()
+
+def extract_metadata(abspath):
+    ignored_tags = """
+        ExifToolVersion FileName Directory FileSize FileModifyDate
+        FileAccessDate FileInodeChangeDate FilePermissions FileType
+        FileTypeExtension MIMEType
+    """.split()
+    ignore_tag_args = itertools.chain.from_iterable(
+        zip(itertools.repeat("-x"), ignored_tags)
+    )
+    output = subprocess.check_output([
+        "exiftool", abspath,
+        "-j", # JSON format
+    ] + list(ignore_tag_args))
+    data = json.loads(output)[0]
+    data.pop("SourceFile")
+
+    # Remove metadata with binary values
+    binary_keys = []
+    for key, value in data.items():
+        if isinstance(value, str) and value.startswith("(Binary data"):
+            binary_keys.append(key)
+    for key in binary_keys:
+        data.pop(key)
+
+    return data
