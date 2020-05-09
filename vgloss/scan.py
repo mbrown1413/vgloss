@@ -6,6 +6,8 @@ import subprocess
 
 from django.conf import settings
 
+import magic
+
 from . import models
 
 SCAN_VERSION = 0
@@ -125,7 +127,11 @@ def scan_file(abspath, file_obj):
 
     Caller is responsible for actually saving the object.
     """
-    file_obj.metadata = extract_metadata(abspath)
+    if not file_obj.name:
+        file_obj.name = os.path.basename(abspath)
+    file_obj.mimetype = magic.from_file(abspath, mime=True)
+    if file_obj.is_image:
+        file_obj.metadata = extract_metadata(abspath)
 
     # Extract time
     #TODO

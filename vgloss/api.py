@@ -9,7 +9,7 @@ class GalleryQuery(APIView):
     def get(self, request, *args, **kwargs):
         return Response([
             dict(
-                name=file.hash,
+                name=file.name,
                 hash=file.hash,
             )
             for file in models.File.objects.all()

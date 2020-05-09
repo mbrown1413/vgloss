@@ -6,6 +6,8 @@ from django.conf import settings
 
 class File(models.Model):
     hash = models.TextField(primary_key=True) # SHA-512
+    name = models.TextField()
+    mimetype = models.TextField()
 
     # Track code versions so if code changes we can trigger an update.
     scan_version = models.PositiveIntegerField(blank=True, null=True, db_index=True)
@@ -15,6 +17,10 @@ class File(models.Model):
     SCAN_FIELDS = ("timestamp", "metadata_json")
     metadata_json = models.TextField(blank=True, null=True)
     timestamp = models.DateTimeField(blank=True, null=True, db_index=True)
+
+    @property
+    def is_image(self):
+        return self.mimetype.startswith("image/")
 
     @property
     def metadata(self):

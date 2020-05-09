@@ -8,8 +8,6 @@ from django.views.generic import View
 from django.http import HttpResponse, Http404
 from django.shortcuts import get_object_or_404
 
-import magic
-
 from . import models
 
 
@@ -65,9 +63,8 @@ class File(View):
 
     def get(self, request, hash):
         file = get_object_or_404(models.File, hash=hash)
-        mimetype = magic.from_file(file.abspath, mime=True)
         with open(file.abspath, "rb") as f:
-            return HttpResponse(f.read(), mimetype)
+            return HttpResponse(f.read(), f.mimetype)
 
 class FileThumbnail(View):
     """Retrieve thumbnail for an image hash."""

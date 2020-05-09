@@ -5,7 +5,7 @@ from django.conf import settings
 
 from PIL import Image
 
-def _path(path):
+def make_path(path):
     return os.path.join(settings.BASE_DIR, path)
 
 def clean():
@@ -18,6 +18,9 @@ def clean():
 
 def basic_data():
     clean()
-    Image.new("RGB", (100, 100), (0, 0, 0)).save(_path("black_square.jpg"))
-    Image.new("RGB", (100, 100), (255, 255, 255)).save(_path("white_square.jpg"))
-    shutil.copy(_path("black_square.jpg"), _path("black_square2.jpg"))
+    Image.new("RGB", (100, 100), (0, 0, 0)).save(make_path("black_square.jpg"))
+    Image.new("RGB", (100, 100), (255, 255, 255)).save(make_path("white_square.jpg"))
+    shutil.copy(make_path("black_square.jpg"), make_path("black_square2.jpg"))
+
+    with open(make_path("not_image.txt"), "w") as f:
+        f.write("I am a lonely text file.")
