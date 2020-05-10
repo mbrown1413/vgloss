@@ -12,6 +12,9 @@ module.exports = {
         "^/file/": {
           target: "http://localhost:8000/",
         },
+        "^/static/": {  // DRF's static files
+          target: "http://localhost:8000/",
+        },
       },
     },
   },
