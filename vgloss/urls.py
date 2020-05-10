@@ -23,10 +23,11 @@ urlpatterns = [
     path("api/gallery/query", api.GalleryQuery.as_view()),
 
     path("file/<str:hash>/raw", views.FileThumbnail.as_view()),
-    path("file/<str:hash>/thumbnail", views.FileThumbnail.as_view()),
+    path("file/<str:hash>/thumbnail", views.FileThumbnail.as_view(), name="file-thumb"),
 
     re_path('css/.*', views.DistFile.as_view()),
     re_path('js/.*', views.DistFile.as_view()),
+    re_path('img/.*', views.DistFile.as_view()),
     re_path('', views.VueSinglePage.as_view()),
 ]
 

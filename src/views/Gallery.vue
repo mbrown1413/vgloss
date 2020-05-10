@@ -5,6 +5,7 @@
       :items="items"
       :selectedItems="selectedItems"
       v-model="selectedItems"
+      @doubleClick="onItemDoubleClick"
     />
 
     <div
@@ -16,21 +17,11 @@
 
         <div>
           Current Folder:
-          <span v-for="(part, i) in folderPath" :key=i>
+          <span v-for="(part, i) in folderPath" :key="i">
             <router-link v-if="i < folderPath.length-1" :to="part.link">{{ part.name }}</router-link>
             <template v-else>{{ part.name }}</template>
             <template v-if="i < folderPath.length-1">
               /
-            </template>
-          </span>
-        </div>
-
-        <div>
-          Sub Folders:
-          <span v-for="(folder, i) in folders" :key="folder">
-            <router-link :to="subFolderLink(folder)">{{ folder }}</router-link>
-            <template v-if="i < folders.length-1">
-              |
             </template>
           </span>
         </div>
@@ -97,6 +88,7 @@ export default {
       } else {
         var pathParts = [{name: "home", link: "/gallery/folder/"}];
         for(var part of trimSlashes(this.thisFolder).split("/")) {
+          if(part == "") continue;
           pathParts.push({
             name: part,
             link: pathParts[pathParts.length-1].link + part + "/",
@@ -111,7 +103,7 @@ export default {
 
     queryParams: {
       handler(queryParams) {
-        // Make API request for items
+        // Make API request
         var request = new XMLHttpRequest();
         request.addEventListener("load", this.onApiResponse);
         var paramString = "";
@@ -135,7 +127,13 @@ export default {
       if(xhr.status == 200) {
         var data = JSON.parse(xhr.response);
         this.items = data.files;
-        this.folders = data.folders;
+        for(var folder of data.folders.reverse()) {
+          this.items.unshift({
+            type: "folder",
+            name: folder,
+            thumbnail: "/img/folder.svg",
+          })
+        }
       } else {
         //TODO: Error Handling
       }
@@ -143,7 +141,13 @@ export default {
 
     subFolderLink(folder) {
       return "/gallery/folder/" + this.thisFolder + trimSlashes(folder);
-    }
+    },
+
+    onItemDoubleClick(item) {
+      if(item.type == "folder") {
+        this.$router.push(this.subFolderLink(item.name));
+      }
+    },
 
   },
 }

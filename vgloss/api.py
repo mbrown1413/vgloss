@@ -2,6 +2,7 @@ import os
 
 from django.conf import settings
 from django.http import Http404
+from django.urls import reverse
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -26,6 +27,7 @@ class GalleryQuery(APIView):
                 dict(
                     name=file.name,
                     hash=file.hash,
+                    thumbnail=reverse("file-thumb", kwargs={"hash": file.hash})
                 )
                 for file in qs
             ]

@@ -10,11 +10,11 @@
         <div
           class="gallery-item"
           :class="{'gallery-item-selected': selectedItemSet.has(item.name)}"
-          @dblclick="$emit('doubleClick', item.name)"
+          @dblclick="$emit('doubleClick', item)"
         >
           <div
             class="gallery-item-image"
-            :style="{backgroundImage: 'url(/file/'+item.hash+'/thumbnail)'}"
+            :style="{backgroundImage: 'url('+item.thumbnail+')'}"
           />
           {{ item.name }}
         </div>
@@ -468,8 +468,8 @@ export default {
 
   },
   watch: {
-    selectedItemSet() {
 
+    selectedItemSet() {
       // Detect if set has changed
       var changed = this.selectedItemSet.size != this.selectedItems.length;
       if(!changed) {
@@ -485,6 +485,12 @@ export default {
         this.$emit("change", Array.from(this.selectedItemSet));
       }
     },
+
+    items() {
+      // Clear selection when items change.
+      this.selectionSet([]);
+    },
+
   },
 
   beforeDestroy() {

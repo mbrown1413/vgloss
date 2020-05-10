@@ -17,6 +17,8 @@ JS:
     $ VGLOSS_BASE=test1/ vgloss serve
     $ yarn run serve --port 8001 --hot
 
+Folder SVG taken from: https://www.svgrepo.com/svg/97469/folder
+
 # vglossjs
 
 ## Project setup

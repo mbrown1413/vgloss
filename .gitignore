@@ -2,6 +2,7 @@
 node_modules
 /vgloss/dist
 vgloss.egg-info/
+.coverage
 
 # local env files
 .env.local
