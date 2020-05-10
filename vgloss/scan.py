@@ -58,6 +58,8 @@ def _get_stale_paths():
             # File wasn't in database. Yield unsaved object
             yield models.FilePath(
                 path=path,
+                folder=os.path.dirname(path),
+                filename=os.path.basename(path),
                 file_id=_get_file_hash(abspath),
                 st_mtime_ns=stat.st_mtime_ns,
             ), "created"

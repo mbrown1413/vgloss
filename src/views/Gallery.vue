@@ -1,16 +1,41 @@
 <template>
   <div class="gallery">
-      <GalleryGrid
-        :items="items"
-        :selectedItems="selectedItems"
-        v-model="selectedItems"
-      />
+
+    <GalleryGrid
+      :items="items"
+      :selectedItems="selectedItems"
+      v-model="selectedItems"
+    />
+
     <div
-      v-if="selectedItems"
       class="gallery-detail-pane"
     >
-        {{ selectedItems.join(" | ") }}
+        <div v-if="selectedItems">
+          {{ selectedItems.join(" | ") }}
+        </div>
+
+        <div>
+          Current Folder:
+          <span v-for="(part, i) in folderPath" :key=i>
+            <router-link v-if="i < folderPath.length-1" :to="part.link">{{ part.name }}</router-link>
+            <template v-else>{{ part.name }}</template>
+            <template v-if="i < folderPath.length-1">
+              /
+            </template>
+          </span>
+        </div>
+
+        <div>
+          Sub Folders:
+          <span v-for="(folder, i) in folders" :key="folder">
+            <router-link :to="subFolderLink(folder)">{{ folder }}</router-link>
+            <template v-if="i < folders.length-1">
+              |
+            </template>
+          </span>
+        </div>
     </div>
+
   </div>
 </template>
 
@@ -36,6 +61,11 @@
 <script>
 import GalleryGrid from '../GalleryGrid.vue';
 
+/* Remove extraneous "/" from beginning, middle and end. */
+function trimSlashes(str) {
+  return str.replace(/^\/+|\/+$/g, '').replace(/\/+/g, '/');
+}
+
 export default {
   name: 'Gallery',
   components: {
@@ -45,25 +75,76 @@ export default {
     return {
       selectedItems: [],
       items: [],
+      folders: [],
     };
   },
-  created() {
-    // Make API request for items
-    var request = new XMLHttpRequest();
-    request.addEventListener("load", this.onApiResponse);
-    request.open("GET", "/api/gallery/query");
-    request.setRequestHeader("Accept", "application/json");
-    request.send();
+  computed: {
+
+    thisFolder() {
+      var folder = this.$route.params.pathMatch;
+      return folder === undefined ? null : trimSlashes(folder)+"/";
+    },
+
+    queryParams() {
+      return {
+        folder: this.thisFolder,
+      };
+    },
+
+    folderPath() {
+      if(!this.thisFolder) {
+        return [];
+      } else {
+        var pathParts = [{name: "home", link: "/gallery/folder/"}];
+        for(var part of trimSlashes(this.thisFolder).split("/")) {
+          pathParts.push({
+            name: part,
+            link: pathParts[pathParts.length-1].link + part + "/",
+          })
+        }
+        return pathParts;
+      }
+    },
+
+  },
+  watch: {
+
+    queryParams: {
+      handler(queryParams) {
+        // Make API request for items
+        var request = new XMLHttpRequest();
+        request.addEventListener("load", this.onApiResponse);
+        var paramString = "";
+        for(var param in queryParams) {
+          if(queryParams[param] !== null) {
+            paramString += `${param}=${encodeURIComponent(queryParams[param])}`;
+          }
+        }
+        request.open("GET", "/api/gallery/query?"+paramString);
+        request.setRequestHeader("Accept", "application/json");
+        request.send();
+      },
+      immediate: true,
+    },
+
   },
   methods: {
+
     onApiResponse(event) {
       var xhr = event.target;
       if(xhr.status == 200) {
-        this.items = JSON.parse(xhr.response);
+        var data = JSON.parse(xhr.response);
+        this.items = data.files;
+        this.folders = data.folders;
       } else {
         //TODO: Error Handling
       }
     },
+
+    subFolderLink(folder) {
+      return "/gallery/folder/" + this.thisFolder + trimSlashes(folder);
+    }
+
   },
 }
 </script>

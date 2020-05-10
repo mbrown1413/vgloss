@@ -39,6 +39,8 @@ class File(models.Model):
 
 class FilePath(models.Model):
     path = models.TextField(primary_key=True)
+    folder = models.TextField(db_index=True)  # Redundanct with path, used for querying
+    filename = models.TextField(db_index=True)  # Redundanct with path, used for querying
     file = models.ForeignKey("File", db_column="file_hash", related_name="paths", on_delete=models.PROTECT)
     st_mtime_ns = models.BigIntegerField()
 

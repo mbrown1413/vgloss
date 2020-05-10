@@ -6,10 +6,13 @@ module.exports = {
   configureWebpack: {
     devServer: {
       proxy: {
-        "/": {
+        "^/api/": {
           target: "http://localhost:8000/",
         },
-      }
+        "^/file/": {
+          target: "http://localhost:8000/",
+        },
+      },
     },
   },
 }

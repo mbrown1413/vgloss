@@ -95,6 +95,12 @@ if os.environ.get("VGLOSS_DUMMY_DATABASE"):
     DATABASES["default"] = {"ENGINE": "django.db.backends.dummy"}
 
 
+# Logging
+#from django.utils.log import DEFAULT_LOGGING as LOGGING
+#LOGGING["loggers"]["django.db"] = {"level": "DEBUG"}
+#LOGGING["handlers"]["console"]["level"] = "DEBUG"
+
+
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
 

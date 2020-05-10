@@ -7,9 +7,21 @@ Vue.use(VueRouter)
 const routes = [
   {
     path: '/',
-    name: 'Gallery',
-    component: Gallery
+    name: 'Home',
+    component: Gallery,
   },
+  {
+    path: '/gallery/folder/*',
+    name: 'Gallery',
+    component: Gallery,
+  },
+  /*
+  {
+    path: '*',
+    name: 'NotFound',
+    component: Gallery,
+  },
+  */
 ]
 
 const router = new VueRouter({
