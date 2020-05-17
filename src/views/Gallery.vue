@@ -55,6 +55,7 @@
 <script>
 import GalleryGrid from '../GalleryGrid.vue';
 import FileDetailModal from '../FileDetailModal.vue';
+import * as urls from '../urls.js';
 
 /* Remove extraneous "/" from beginning, middle and end. */
 function trimSlashes(str) {
@@ -113,13 +114,7 @@ export default {
         // Make API request
         var request = new XMLHttpRequest();
         request.addEventListener("load", this.onListApiResponse);
-        var paramString = "";
-        for(var param in queryParams) {
-          if(queryParams[param] !== null) {
-            paramString += `${param}=${encodeURIComponent(queryParams[param])}`;
-          }
-        }
-        request.open("GET", "/api/file/?"+paramString);
+        request.open("GET", urls.fileList(queryParams));
         request.setRequestHeader("Accept", "application/json");
         request.send();
       },

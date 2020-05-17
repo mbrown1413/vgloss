@@ -16,6 +16,7 @@
 
 <script>
 import { BModal } from 'bootstrap-vue/esm/components/modal/modal';
+import * as urls from './urls.js';
 
 export default {
   name: "FileDetailModal",
@@ -39,7 +40,7 @@ export default {
         // Make API request
         var request = new XMLHttpRequest();
         request.addEventListener("load", this.onDetailApiResponse);
-        request.open("GET", "/api/file/"+file.hash);
+        request.open("GET", urls.fileDetail(file.hash));
         request.setRequestHeader("Accept", "application/json");
         request.send();
       }
