@@ -6,6 +6,7 @@
     ok-only
     ok-title="Close"
     size="xl"
+    v-model="visible"
   >
     <div v-if="!details">
       Loading...
@@ -34,7 +35,19 @@ export default {
     return {
       file: null,
       details: null,
+      visible: false,
     };
+  },
+  mounted() {
+    document.addEventListener("keydown", (event) => {
+      if(this.visible) {
+        if(["ArrowUp", "ArrowLeft"].includes(event.code)) {
+          this.$emit("prev");
+        } else if(["ArrowDown", "ArrowRight"].includes(event.code)) {
+          this.$emit("next");
+        }
+      }
+    });
   },
   computed: {
     imageUrl() {

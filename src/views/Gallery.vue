@@ -29,6 +29,8 @@
 
     <FileDetailModal
       ref="fileDetailModal"
+      @next="deltaModalItem(1)"
+      @prev="deltaModalItem(-1)"
     />
   </div>
 </template>
@@ -153,6 +155,18 @@ export default {
         this.$router.push(this.subFolderLink(item.name));
       } else {
         this.$refs.fileDetailModal.show(item);
+      }
+    },
+
+    deltaModalItem(offset) {
+      var current = this.$refs.fileDetailModal.file;
+      var currentIndex = this.items.indexOf(current);
+      var nextIndex = currentIndex + offset;
+      if(currentIndex != -1 && nextIndex >= 0 && nextIndex < this.items.length) {
+        var nextItem = this.items[nextIndex];
+        if(nextItem.type != "folder") {
+          this.$refs.fileDetailModal.show(this.items[nextIndex]);
+        }
       }
     },
 
