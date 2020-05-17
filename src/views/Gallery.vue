@@ -27,6 +27,9 @@
         </div>
     </div>
 
+    <FileDetailModal
+      ref="fileDetailModal"
+    />
   </div>
 </template>
 
@@ -51,6 +54,7 @@
 
 <script>
 import GalleryGrid from '../GalleryGrid.vue';
+import FileDetailModal from '../FileDetailModal.vue';
 
 /* Remove extraneous "/" from beginning, middle and end. */
 function trimSlashes(str) {
@@ -60,13 +64,16 @@ function trimSlashes(str) {
 export default {
   name: 'Gallery',
   components: {
-    "GalleryGrid": GalleryGrid,
+    GalleryGrid,
+    FileDetailModal,
   },
   data() {
     return {
       selectedItems: [],
       items: [],
       folders: [],
+      modalItem: null,
+      modalDetails: null,
     };
   },
   computed: {
@@ -105,14 +112,14 @@ export default {
       handler(queryParams) {
         // Make API request
         var request = new XMLHttpRequest();
-        request.addEventListener("load", this.onApiResponse);
+        request.addEventListener("load", this.onListApiResponse);
         var paramString = "";
         for(var param in queryParams) {
           if(queryParams[param] !== null) {
             paramString += `${param}=${encodeURIComponent(queryParams[param])}`;
           }
         }
-        request.open("GET", "/api/gallery/query?"+paramString);
+        request.open("GET", "/api/file/?"+paramString);
         request.setRequestHeader("Accept", "application/json");
         request.send();
       },
@@ -122,7 +129,7 @@ export default {
   },
   methods: {
 
-    onApiResponse(event) {
+    onListApiResponse(event) {
       var xhr = event.target;
       if(xhr.status == 200) {
         var data = JSON.parse(xhr.response);
@@ -146,6 +153,8 @@ export default {
     onItemDoubleClick(item) {
       if(item.type == "folder") {
         this.$router.push(this.subFolderLink(item.name));
+      } else {
+        this.$refs.fileDetailModal.show(item);
       }
     },
 

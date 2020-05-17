@@ -2,49 +2,58 @@ import os
 
 from django.conf import settings
 from django.http import Http404
-from django.urls import reverse
 
+from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from . import models
+from . import models, serializers
 
-class GalleryQuery(APIView):
-    """Query for a list of images."""
 
-    def get(self, request, *args, **kwargs):
-        qs = models.File.objects.all()
+class FileListAPI(APIView):
 
-        # Filter files based on folder
-        folder = request.GET.get("folder")
+    def get(self, *args, **kwargs):
+        qs = self.filter_files(models.File.objects.all())
+        file_serializer = serializers.FileSerializer(qs, many=True)
+
+        folder = self.request.GET.get("folder")
+        if folder:
+            folders = self.get_folder_list(folder)
+        else:
+            folders = []
+
+        return Response(dict(
+            files=file_serializer.data,
+            folders=folders,
+        ))
+
+    def filter_files(self, qs):
+        # Filter based on folder
+        folder = self.request.GET.get("folder")
         if folder is not None:
             folder = folder.strip("/")
             paths = models.FilePath.objects.filter(folder=folder)
             qs = qs.filter(paths__in=paths).distinct()
 
-        response = dict(
-            files=[
-                dict(
-                    name=file.name,
-                    hash=file.hash,
-                    thumbnail=reverse("file-thumb", kwargs={"hash": file.hash})
-                )
-                for file in qs
-            ]
-        )
-        if folder is not None:
-            folder_abspath = os.path.normpath(os.path.join(settings.BASE_DIR, folder))
-            if not os.path.commonpath([folder_abspath, settings.BASE_DIR]) == settings.BASE_DIR:
-                raise Http404()
-            try:
-                files = os.listdir(folder_abspath)
-            except FileNotFoundError:
-                raise Http404()
-            response["folders"] = [
-                f
-                for f in files
-                if os.path.isdir(os.path.join(folder_abspath, f))
-                if f != ".vgloss"
-            ]
+        return qs
 
-        return Response(response)
+    def get_folder_list(self, folder):
+        folder = folder.strip("/")
+        folder_abspath = os.path.normpath(os.path.join(settings.BASE_DIR, folder))
+        if not os.path.commonpath([folder_abspath, settings.BASE_DIR]) == settings.BASE_DIR:
+            raise Http404()
+        try:
+            files = os.listdir(folder_abspath)
+        except FileNotFoundError:
+            raise Http404()
+        return [
+            f
+            for f in files
+            if os.path.isdir(os.path.join(folder_abspath, f))
+            if f != ".vgloss"
+        ]
+
+class FileDetailAPI(generics.RetrieveAPIView):
+    queryset = models.File.objects.all()
+    serializer_class = serializers.FileDetailSerializer
+    lookup_field = "hash"

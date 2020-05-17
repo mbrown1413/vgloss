@@ -3,11 +3,13 @@ import json
 
 from django.db import models
 from django.conf import settings
+from django.urls import reverse
 
 class File(models.Model):
     hash = models.TextField(primary_key=True) # SHA-512
     name = models.TextField()
     mimetype = models.TextField()
+    #size = models.PositiveIntegerField()
 
     # Track code versions so if code changes we can trigger an update.
     scan_version = models.PositiveIntegerField(blank=True, null=True, db_index=True)
@@ -30,12 +32,20 @@ class File(models.Model):
     def metadata(self, data):
         self.metadata_json = json.dumps(data)
 
+    @property
+    def thumbnail_url(self):
+        return reverse("file-thumb", kwargs={"hash": self.hash})
+
     def get_thumbnail_path(self, _absent_ok=False):
         path = os.path.join(settings.THUMBNAIL_DIR, self.hash+".jpg")
         if _absent_ok or os.path.exists(path):
             return path
         else:
             return None
+
+    @property
+    def paths(self):
+        return self.paths.objects.values_list("path")
 
 class FilePath(models.Model):
     path = models.TextField(primary_key=True)

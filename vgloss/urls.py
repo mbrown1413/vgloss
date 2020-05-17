@@ -20,7 +20,8 @@ from django.conf import settings
 from . import views, api
 
 urlpatterns = [
-    path("api/gallery/query", api.GalleryQuery.as_view()),
+    path("api/file/", api.FileListAPI.as_view()),
+    path("api/file/<str:hash>", api.FileDetailAPI.as_view()),
 
     path("file/<str:hash>/raw", views.FileThumbnail.as_view()),
     path("file/<str:hash>/thumbnail", views.FileThumbnail.as_view(), name="file-thumb"),
