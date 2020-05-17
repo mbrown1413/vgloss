@@ -1,3 +1,11 @@
+export function fileRaw(fileHash) {
+  return "/file/"+fileHash+"/raw";
+}
+
+export function fileThumbnail(fileHash) {
+  return "/file/"+fileHash+"/thumbnail";
+}
+
 export function fileDetail(fileHash) {
   return "/api/file/"+fileHash;
 }

@@ -129,6 +129,9 @@ export default {
       if(xhr.status == 200) {
         var data = JSON.parse(xhr.response);
         this.items = data.files;
+        for(var item of this.items) {
+          item.thumbnail = urls.fileThumbnail(item.hash);
+        }
         for(var folder of data.folders.reverse()) {
           this.items.unshift({
             type: "folder",

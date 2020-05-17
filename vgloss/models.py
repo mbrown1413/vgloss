@@ -32,10 +32,6 @@ class File(models.Model):
     def metadata(self, data):
         self.metadata_json = json.dumps(data)
 
-    @property
-    def thumbnail_url(self):
-        return reverse("file-thumb", kwargs={"hash": self.hash})
-
     def get_thumbnail_path(self, _absent_ok=False):
         path = os.path.join(settings.THUMBNAIL_DIR, self.hash+".jpg")
         if _absent_ok or os.path.exists(path):

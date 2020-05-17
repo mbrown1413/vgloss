@@ -4,19 +4,26 @@
     :title="file ? file.name : ''"
     centered
     ok-only
+    ok-title="Close"
+    size="xl"
   >
     <div v-if="!details">
       Loading...
     </div>
     <div v-else>
+      <img :src="imageUrl" />
       {{ details }}
     </div>
   </b-modal>
 </template>
 
 <script>
-import { BModal } from 'bootstrap-vue/esm/components/modal/modal';
-import * as urls from './urls.js';
+import { BModal } from "bootstrap-vue/esm/components/modal/modal";
+import * as urls from "./urls.js";
+
+import LRU from "lru-cache";
+
+var detailCache = new LRU(20);
 
 export default {
   name: "FileDetailModal",
@@ -29,6 +36,11 @@ export default {
       details: null,
     };
   },
+  computed: {
+    imageUrl() {
+      return urls.fileRaw(this.file.hash);
+    },
+  },
   methods: {
 
     show(file) {
@@ -37,22 +49,33 @@ export default {
         this.file = file;
         this.details = null;  // Set by xhr handler
 
-        // Make API request
-        var request = new XMLHttpRequest();
-        request.addEventListener("load", this.onDetailApiResponse);
-        request.open("GET", urls.fileDetail(file.hash));
-        request.setRequestHeader("Accept", "application/json");
-        request.send();
-      }
-    },
+        var details = detailCache.get(file.hash);
+        if(details !== undefined) {
+          this.details = details;
+        } else {
+          // Make API request
+          var xhr = new XMLHttpRequest();
 
-    onDetailApiResponse(event) {
-      var xhr = event.target;
-      if(xhr.status == 200) {
-        var data = JSON.parse(xhr.response);
-        this.details = data;
-      } else {
-        //TODO: Error Handling
+          var onResponse = () => {
+            if(xhr.status == 200) {
+              var data = JSON.parse(xhr.response);
+              // If the request is slow, the current file may have changed.
+              // Always update the cache, but only update details if the files
+              // match.
+              detailCache.set(file.hash, data);
+              if(file.hash == this.file.hash) {
+                this.details = data;
+              }
+            } else {
+              //TODO: Error Handling
+            }
+          }
+
+          xhr.addEventListener("load", onResponse);
+          xhr.open("GET", urls.fileDetail(file.hash));
+          xhr.setRequestHeader("Accept", "application/json");
+          xhr.send();
+        }
       }
     },
 
