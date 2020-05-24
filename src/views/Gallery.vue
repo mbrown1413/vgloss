@@ -1,6 +1,9 @@
 <template>
   <div class="gallery">
 
+    <div class="gallery-tag-pane">
+    </div>
+
     <GalleryGrid
       :items="items"
       :selectedItems="selectedItems"
@@ -38,15 +41,26 @@
 <style>
   .gallery {
     display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr min-content;
+    grid-template-columns: [tag-pane-start] 200px [tag-pane-end gallery-grid-start] 1fr [gallery-grid-end];
+    grid-template-rows: [action-pane-start tag-pane-start] min-content [action-pane-end gallery-grid-start] 1fr [gallery-grid-end detail-pane-start] min-content [detail-pane-end tag-pane-end];
     position: absolute;
     top: 0;
     bottom: 0;
     left: 0;
     right: 0;
   }
+  .gallery-tag-pane {
+    grid-column: tag-pane-start / tag-pane-end;
+    grid-row: tag-pane-start / tag-pane-end;
+    border-right: black 2px solid;
+  }
+  .gallery-grid {
+    grid-column: gallery-grid-start / gallery-grid-end;
+    grid-row: gallery-grid-start / gallery-grid-end;
+  }
   .gallery-detail-pane {
+    grid-column: gallery-grid-start / gallery-grid-end;
+    grid-row: detail-pane-start / detail-pane-end;
     background-color: #cccccc;
     border-top: black 2px solid;
     padding-top: 1em;
