@@ -1,7 +1,6 @@
 import os
 
 from django.conf import settings
-from django.http import Http404
 
 from rest_framework import generics
 from rest_framework.views import APIView
@@ -10,50 +9,40 @@ from rest_framework.response import Response
 from . import models, serializers
 
 
-class FileListAPI(APIView):
+def get_folder_tree(path):
+    tree = {}
+    for entry in os.scandir(path):
+        if entry.name == ".vgloss":
+            continue
+        elif entry.is_dir() and not entry.is_symlink():
+            tree[entry.name] = get_folder_tree(entry.path)
+    return tree
+
+class GalleryApi(APIView):
+    """Retrieve global information needed to show the gallery."""
 
     def get(self, *args, **kwargs):
-        qs = self.filter_files(models.File.objects.all())
-        file_serializer = serializers.FileSerializer(qs, many=True)
-
-        folder = self.request.GET.get("folder")
-        if folder:
-            folders = self.get_folder_list(folder)
-        else:
-            folders = []
-
         return Response(dict(
-            files=file_serializer.data,
-            folders=folders,
+            folderTree=get_folder_tree(settings.BASE_DIR),
         ))
 
-    def filter_files(self, qs):
-        # Filter based on folder
+
+class FileListApi(APIView):
+
+    def get(self, *args, **kwargs):
+        qs = models.File.objects.all()
+
+        # Filter by folder
         folder = self.request.GET.get("folder")
         if folder is not None:
             folder = folder.strip("/")
             paths = models.FilePath.objects.filter(folder=folder)
             qs = qs.filter(paths__in=paths).distinct()
 
-        return qs
+        file_serializer = serializers.FileSerializer(qs, many=True)
+        return Response(file_serializer.data)
 
-    def get_folder_list(self, folder):
-        folder = folder.strip("/")
-        folder_abspath = os.path.normpath(os.path.join(settings.BASE_DIR, folder))
-        if not os.path.commonpath([folder_abspath, settings.BASE_DIR]) == settings.BASE_DIR:
-            raise Http404()
-        try:
-            files = os.listdir(folder_abspath)
-        except FileNotFoundError:
-            raise Http404()
-        return [
-            f
-            for f in files
-            if os.path.isdir(os.path.join(folder_abspath, f))
-            if f != ".vgloss"
-        ]
-
-class FileDetailAPI(generics.RetrieveAPIView):
+class FileDetailApi(generics.RetrieveAPIView):
     queryset = models.File.objects.all()
     serializer_class = serializers.FileDetailSerializer
     lookup_field = "hash"

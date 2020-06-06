@@ -57,6 +57,7 @@
     border: 1px solid #d0d0d0;
     border-radius: 5%;
     cursor: pointer;
+    text-align: center;
   }
   .gallery-item:hover {
     border: 1px solid black;

@@ -20,12 +20,16 @@ from django.conf import settings
 from . import views, api
 
 urlpatterns = [
-    path("api/file/", api.FileListAPI.as_view()),
-    path("api/file/<str:hash>", api.FileDetailAPI.as_view()),
+    # APIs
+    path("api/gallery", api.GalleryApi.as_view()),
+    path("api/file/", api.FileListApi.as_view()),
+    path("api/file/<str:hash>", api.FileDetailApi.as_view()),
 
+    # Files
     path("file/<str:hash>/raw", views.FileThumbnail.as_view()),
     path("file/<str:hash>/thumbnail", views.FileThumbnail.as_view(), name="file-thumb"),
 
+    # Static files
     re_path('css/.*', views.DistFile.as_view()),
     re_path('js/.*', views.DistFile.as_view()),
     re_path('img/.*', views.DistFile.as_view()),

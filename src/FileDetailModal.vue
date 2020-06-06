@@ -85,7 +85,7 @@ export default {
           }
 
           xhr.addEventListener("load", onResponse);
-          xhr.open("GET", urls.fileDetail(file.hash));
+          xhr.open("GET", urls.apiFileDetail(file.hash));
           xhr.setRequestHeader("Accept", "application/json");
           xhr.send();
         }

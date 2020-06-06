@@ -1,32 +1,39 @@
 <template>
   <div class="gallery">
 
-    <div class="gallery-tag-pane">
+    <div class="gallery-filter-pane">
+      <h4 style="margin-left: 0.25em">Folders</h4>
+      <FolderFilterTree />
+
+      <!--
+      <hr>
+      <h4>Tags</h4>
+      <FolderFilterTree />
+      -->
+    </div>
+
+    <div class="gallery-action-pane">
+      <span v-for="(part, i) in folderPath" :key="i">
+        <router-link v-if="i < folderPath.length-1" :to="part.url">{{ part.name }}</router-link>
+        <template v-else>{{ part.name }}</template>
+        <template v-if="i < folderPath.length-1">
+          /
+        </template>
+      </span>
     </div>
 
     <GalleryGrid
-      :items="items"
+      :items="gridItems"
       :selectedItems="selectedItems"
       v-model="selectedItems"
       @doubleClick="onItemDoubleClick"
     />
 
     <div
-      class="gallery-detail-pane"
+      class="gallery-info-pane"
     >
         <div v-if="selectedItems">
           {{ selectedItems.join(" | ") }}
-        </div>
-
-        <div>
-          Current Folder:
-          <span v-for="(part, i) in folderPath" :key="i">
-            <router-link v-if="i < folderPath.length-1" :to="part.link">{{ part.name }}</router-link>
-            <template v-else>{{ part.name }}</template>
-            <template v-if="i < folderPath.length-1">
-              /
-            </template>
-          </span>
         </div>
     </div>
 
@@ -41,63 +48,68 @@
 <style>
   .gallery {
     display: grid;
-    grid-template-columns: [tag-pane-start] 200px [tag-pane-end gallery-grid-start] 1fr [gallery-grid-end];
-    grid-template-rows: [action-pane-start tag-pane-start] min-content [action-pane-end gallery-grid-start] 1fr [gallery-grid-end detail-pane-start] min-content [detail-pane-end tag-pane-end];
+    grid-template-columns: [filter-pane-start] 200px [filter-pane-end gallery-grid-start] 1fr [gallery-grid-end];
+    grid-template-rows: [action-pane-start filter-pane-start] min-content [action-pane-end gallery-grid-start] 1fr [gallery-grid-end info-pane-start] min-content [info-pane-end filter-pane-end];
     position: absolute;
     top: 0;
     bottom: 0;
     left: 0;
     right: 0;
   }
-  .gallery-tag-pane {
-    grid-column: tag-pane-start / tag-pane-end;
-    grid-row: tag-pane-start / tag-pane-end;
+  .gallery-filter-pane {
+    grid-column: filter-pane-start / filter-pane-end;
+    grid-row: filter-pane-start / filter-pane-end;
     border-right: black 2px solid;
+  }
+  .gallery-action-pane {
+    grid-column: gallery-grid-start / gallery-grid-end;
+    grid-row: action-pane-start / action-pane-end;
+    border-bottom: black 2px solid;
+  }
+  .gallery-info-pane {
+    grid-column: gallery-grid-start / gallery-grid-end;
+    grid-row: info-pane-start / info-pane-end;
+    border-top: black 2px solid;
+  }
+  .gallery-action-pane, .gallery-info-pane {
+    background-color: #cccccc;
+    padding: 0.5em;
   }
   .gallery-grid {
     grid-column: gallery-grid-start / gallery-grid-end;
     grid-row: gallery-grid-start / gallery-grid-end;
   }
-  .gallery-detail-pane {
-    grid-column: gallery-grid-start / gallery-grid-end;
-    grid-row: detail-pane-start / detail-pane-end;
-    background-color: #cccccc;
-    border-top: black 2px solid;
-    padding-top: 1em;
-    padding-bottom: 1em;
-  }
 </style>
 
 <script>
 import GalleryGrid from '../GalleryGrid.vue';
+import FolderFilterTree from '../FolderFilterTree.vue';
 import FileDetailModal from '../FileDetailModal.vue';
 import * as urls from '../urls.js';
-
-/* Remove extraneous "/" from beginning, middle and end. */
-function trimSlashes(str) {
-  return str.replace(/^\/+|\/+$/g, '').replace(/\/+/g, '/');
-}
 
 export default {
   name: 'Gallery',
   components: {
     GalleryGrid,
+    FolderFilterTree,
     FileDetailModal,
   },
   data() {
     return {
+      files: [],
       selectedItems: [],
-      items: [],
-      folders: [],
       modalItem: null,
       modalDetails: null,
     };
+  },
+  mounted() {
+    this.$store.dispatch("galleryRequest");
   },
   computed: {
 
     thisFolder() {
       var folder = this.$route.params.pathMatch;
-      return folder === undefined ? null : trimSlashes(folder)+"/";
+      return folder || "";
     },
 
     queryParams() {
@@ -107,19 +119,30 @@ export default {
     },
 
     folderPath() {
-      if(!this.thisFolder) {
-        return [];
-      } else {
-        var pathParts = [{name: "home", link: "/gallery/folder/"}];
-        for(var part of trimSlashes(this.thisFolder).split("/")) {
-          if(part == "") continue;
-          pathParts.push({
-            name: part,
-            link: pathParts[pathParts.length-1].link + part + "/",
-          })
-        }
-        return pathParts;
+      return urls.folderListFromPath(this.thisFolder);
+    },
+
+    gridItems() {
+      var items = [];
+
+      // Folders
+      var folders = this.$store.getters.listFolders(this.thisFolder);
+      for(var folder of folders) {
+        items.push({
+          type: "folder",
+          name: folder,
+          path: this.thisFolder + "/" + folder,
+          thumbnail: "/img/folder.svg",
+        });
       }
+
+      // Files
+      for(var file of this.files) {
+        file.thumbnail = urls.fileThumbnail(file.hash);
+        items.push(file);
+      }
+
+      return items;
     },
 
   },
@@ -130,7 +153,7 @@ export default {
         // Make API request
         var request = new XMLHttpRequest();
         request.addEventListener("load", this.onListApiResponse);
-        request.open("GET", urls.fileList(queryParams));
+        request.open("GET", urls.apiFileList(queryParams));
         request.setRequestHeader("Accept", "application/json");
         request.send();
       },
@@ -143,30 +166,15 @@ export default {
     onListApiResponse(event) {
       var xhr = event.target;
       if(xhr.status == 200) {
-        var data = JSON.parse(xhr.response);
-        this.items = data.files;
-        for(var item of this.items) {
-          item.thumbnail = urls.fileThumbnail(item.hash);
-        }
-        for(var folder of data.folders.reverse()) {
-          this.items.unshift({
-            type: "folder",
-            name: folder,
-            thumbnail: "/img/folder.svg",
-          })
-        }
+        this.files = JSON.parse(xhr.response);
       } else {
         //TODO: Error Handling
       }
     },
 
-    subFolderLink(folder) {
-      return "/gallery/folder/" + this.thisFolder + trimSlashes(folder);
-    },
-
     onItemDoubleClick(item) {
       if(item.type == "folder") {
-        this.$router.push(this.subFolderLink(item.name));
+        this.$router.push(urls.gallery(item.path));
       } else {
         this.$refs.fileDetailModal.show(item);
       }
@@ -174,12 +182,12 @@ export default {
 
     deltaModalItem(offset) {
       var current = this.$refs.fileDetailModal.file;
-      var currentIndex = this.items.indexOf(current);
+      var currentIndex = this.gridItems.indexOf(current);
       var nextIndex = currentIndex + offset;
-      if(currentIndex != -1 && nextIndex >= 0 && nextIndex < this.items.length) {
-        var nextItem = this.items[nextIndex];
+      if(currentIndex != -1 && nextIndex >= 0 && nextIndex < this.gridItems.length) {
+        var nextItem = this.gridItems[nextIndex];
         if(nextItem.type != "folder") {
-          this.$refs.fileDetailModal.show(this.items[nextIndex]);
+          this.$refs.fileDetailModal.show(this.gridItems[nextIndex]);
         }
       }
     },
