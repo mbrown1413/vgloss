@@ -19,7 +19,7 @@ export function gallery(folder=null) {
  * objects describing the folders along that path. */
 export function folderListFromPath(path) {
   var folders = [{
-    name: "home",
+    name: "root",
     folder: "/",
     url: gallery(null),
   }];

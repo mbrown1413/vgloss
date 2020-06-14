@@ -3,7 +3,11 @@
 
     <div class="gallery-filter-pane">
       <h4 style="margin-left: 0.25em">Folders</h4>
-      <FolderFilterTree />
+      <FolderFilterTree
+        :tree="folderTree"
+        :selected="[selectedFolder]"
+        @change="onFolderSelect"
+      />
 
       <!--
       <hr>
@@ -87,6 +91,12 @@ import FolderFilterTree from '../FolderFilterTree.vue';
 import FileDetailModal from '../FileDetailModal.vue';
 import * as urls from '../urls.js';
 
+/* Gallery URLs
+ * All data that determines which items are shown will be present in the URL.
+ * This ensures the current location can always be bookmarked. This data is
+ * available as a computed property, so it cannot be changed directly. Instead,
+ * change the URL and the computed properties will update accordingly.
+ */
 export default {
   name: 'Gallery',
   components: {
@@ -107,31 +117,35 @@ export default {
   },
   computed: {
 
-    thisFolder() {
+    folderTree() {
+      return this.$store.state.folderTree;
+    },
+
+    selectedFolder() {
       var folder = this.$route.params.pathMatch;
       return folder || "";
     },
 
     queryParams() {
       return {
-        folder: this.thisFolder,
+        folder: this.selectedFolder,
       };
     },
 
     folderPath() {
-      return urls.folderListFromPath(this.thisFolder);
+      return urls.folderListFromPath(this.selectedFolder);
     },
 
     gridItems() {
       var items = [];
 
       // Folders
-      var folders = this.$store.getters.listFolders(this.thisFolder);
+      var folders = this.$store.getters.listFolders(this.selectedFolder);
       for(var folder of folders) {
         items.push({
           type: "folder",
           name: folder,
-          path: this.thisFolder + "/" + folder,
+          path: this.selectedFolder + "/" + folder,
           thumbnail: "/img/folder.svg",
         });
       }
@@ -152,31 +166,38 @@ export default {
       handler(queryParams) {
         // Make API request
         var request = new XMLHttpRequest();
-        request.addEventListener("load", this.onListApiResponse);
+        request.addEventListener("load", (event) => {
+          var xhr = event.target;
+          if(xhr.status == 200) {
+            this.files = JSON.parse(xhr.response);
+          } else {
+            //TODO: Error Handling
+          }
+        });
         request.open("GET", urls.apiFileList(queryParams));
         request.setRequestHeader("Accept", "application/json");
         request.send();
       },
       immediate: true,
+      deep: true,
     },
 
   },
   methods: {
-
-    onListApiResponse(event) {
-      var xhr = event.target;
-      if(xhr.status == 200) {
-        this.files = JSON.parse(xhr.response);
-      } else {
-        //TODO: Error Handling
-      }
-    },
 
     onItemDoubleClick(item) {
       if(item.type == "folder") {
         this.$router.push(urls.gallery(item.path));
       } else {
         this.$refs.fileDetailModal.show(item);
+      }
+    },
+
+    onFolderSelect(selectedFolders) {
+      if(selectedFolders.length == 0) {
+        this.$router.push(urls.gallery(""));
+      } else if(selectedFolders.length == 1) {
+        this.$router.push(urls.gallery(selectedFolders[0]));
       }
     },
 
