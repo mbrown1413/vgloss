@@ -87,9 +87,11 @@ def command_init(args):
 
     os.makedirs(settings.DATA_DIR, exist_ok=True)
     setup()
-    return call_command("migrate", verbosity=0, interactive=False)
+    call_command("migrate", verbosity=0, interactive=False)
+    command_scan(args)
 
 def command_serve(args):
+    command_scan(args)
     return call_command("runserver", verbosity=1, addrport=str(args.port))
 
 def command_scan(args):
