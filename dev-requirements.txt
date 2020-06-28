@@ -1,5 +1,8 @@
 pip-tools
 ipython
 
+pylint
+pylint_django
+
 # Create test images
 Pillow

@@ -3,7 +3,6 @@ import json
 
 from django.db import models
 from django.conf import settings
-from django.urls import reverse
 
 class File(models.Model):
     hash = models.TextField(primary_key=True) # SHA-512
@@ -55,3 +54,14 @@ class FilePath(models.Model):
         path = os.path.abspath(os.path.join(settings.BASE_DIR, self.path))
         assert path.startswith(settings.BASE_DIR)
         return path
+
+class Tag(models.Model):
+    name = models.TextField(db_index=True)
+    files = models.ManyToManyField("File", through="FileTag", related_name="tags")
+
+    def __str__(self):
+        return self.name
+
+class FileTag(models.Model):
+    file = models.ForeignKey("File", on_delete=models.CASCADE)
+    tag = models.ForeignKey("Tag", on_delete=models.CASCADE)
