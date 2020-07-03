@@ -1,10 +1,13 @@
 from django.db.transaction import atomic
 from rest_framework import serializers
+from rest_framework.exceptions import NotFound
 
 from vgloss import models
 
 
 class FileSerializer(serializers.ModelSerializer):
+    tags = serializers.ReadOnlyField(source="tag_ids")
+
     class Meta:
         model = models.File
         fields = [
@@ -29,7 +32,12 @@ class TagListSerializer(serializers.ListSerializer):
             saved_tags = []
             for tag_data in self.validated_data:
                 tag_id = tag_data.get("id", None)
-                tag = tag_mapping.get(tag_id, None)
+                if tag_id is None:
+                    tag = None
+                else:
+                    tag = tag_mapping.get(tag_id, None)
+                    if tag is None:
+                        raise NotFound(f'ID {tag_id} not found', 404)
                 if tag is None:
                     saved_tags.append(self.child.create(tag_data))
                 else:
@@ -48,3 +56,30 @@ class TagSerializer(serializers.ModelSerializer):
         model = models.Tag
         fields = ["id", "name"]
         list_serializer_class = TagListSerializer
+
+class FileTagListSerializer(serializers.ListSerializer):
+
+    def save(self):
+        with atomic():
+            for filetag in self.validated_data:
+                models.FileTag.objects.get_or_create(
+                    file_id=filetag["file_hash"],
+                    tag_id=filetag["tag_id"],
+                )
+
+    def delete(self):
+        with atomic():
+            for filetag in self.validated_data:
+                models.FileTag.objects.filter(
+                    file_id=filetag["file_hash"],
+                    tag_id=filetag["tag_id"],
+                ).delete()
+
+class FileTagSerializer(serializers.ModelSerializer):
+    file = serializers.CharField(source="file_hash")
+    tag = serializers.IntegerField(source="tag_id")
+
+    class Meta:
+        model = models.FileTag
+        fields = ["file", "tag"]
+        list_serializer_class = FileTagListSerializer

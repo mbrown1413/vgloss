@@ -1,10 +1,9 @@
-from django.test import TestCase
+from django.test import TestCase, Client
 from django.urls import reverse
-from django.test import Client
 
 from vgloss import models
 
-class TestTags(TestCase):
+class TestTag(TestCase):
 
     def setUp(self):
         self.client = Client()
@@ -73,6 +72,17 @@ class TestTags(TestCase):
 
         tag1.refresh_from_db()
         self.assertEqual(tag1.name, "New Name!")
+
+    def test_update_bad_id(self):
+        """Test updating a non-existant tag ID."""
+        # IDs are assigned by backend, not frontend. If a tag ID doesn't exist
+        # a 404 should be raised.
+        response = self.client.post(self.url, [{
+            "id": 8,
+            "name": "New Name!",
+        }], content_type="application/json")
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(models.Tag.objects.count(), 0)
 
     def test_delete(self):
         tag1 = models.Tag.objects.create(name="tag1")

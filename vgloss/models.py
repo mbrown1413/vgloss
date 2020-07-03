@@ -42,6 +42,10 @@ class File(models.Model):
     def paths(self):
         return self.paths.objects.values_list("path")
 
+    @property
+    def tag_ids(self):
+        return self.filetag_set.objects.values_list("tag_id", flat=True)
+
 class FilePath(models.Model):
     path = models.TextField(primary_key=True)
     folder = models.TextField(db_index=True)  # Redundanct with path, used for querying
@@ -63,5 +67,8 @@ class Tag(models.Model):
         return self.name
 
 class FileTag(models.Model):
-    file = models.ForeignKey("File", on_delete=models.CASCADE)
+    file = models.ForeignKey("File", db_column="file_hash", on_delete=models.CASCADE)
     tag = models.ForeignKey("Tag", on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together=[("file", "tag")]
