@@ -22,15 +22,20 @@ def get_folder_tree(path):
 class GalleryApi(APIView):
     """Retrieve global information needed to show the gallery."""
 
-    def get(self, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
+        tag_serializer = serializers.TagSerializer(
+            models.Tag.objects.all(),
+            many=True,
+        )
         return Response(dict(
             folderTree=get_folder_tree(settings.BASE_DIR),
+            tags=tag_serializer.data,
         ))
 
 
 class FileListApi(APIView):
 
-    def get(self, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         qs = models.File.objects.all()
 
         # Filter by folder
@@ -62,6 +67,11 @@ class TagsApi(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return self.get(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data, many=True)
+        serializer.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class FileTagsApi(GenericAPIView):
     queryset = models.FileTag.objects.all()

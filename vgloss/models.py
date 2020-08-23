@@ -61,6 +61,7 @@ class FilePath(models.Model):
 
 class Tag(models.Model):
     name = models.TextField(db_index=True)
+    parent = models.ForeignKey("Tag", null=True, blank=True, on_delete=models.CASCADE)
     files = models.ManyToManyField("File", through="FileTag", related_name="tags")
 
     def __str__(self):

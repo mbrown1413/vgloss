@@ -26,35 +26,36 @@ class TagListSerializer(serializers.ListSerializer):
 
     def save(self):
         with atomic():
-            tag_mapping = {tag.id: tag for tag in models.Tag.objects.all()}
+            tag_ids = [t.get("id") for t in self.validated_data]
+            tags_qs = models.Tag.objects.filter(id__in=tag_ids)
+            tag_mapping = {tag.id: tag for tag in tags_qs}
 
             # Perform creation / update
-            saved_tags = []
             for tag_data in self.validated_data:
-                tag_id = tag_data.get("id", None)
+                tag_id = tag_data.get("id")
                 if tag_id is None:
                     tag = None
                 else:
-                    tag = tag_mapping.get(tag_id, None)
+                    tag = tag_mapping.get(tag_id)
                     if tag is None:
                         raise NotFound(f'ID {tag_id} not found', 404)
                 if tag is None:
-                    saved_tags.append(self.child.create(tag_data))
+                    self.child.create(tag_data)
                 else:
-                    saved_tags.append(self.child.update(tag, tag_data))
+                    self.child.update(tag, tag_data)
 
-            # Perform deletions
-            saved_ids = [tag.id for tag in saved_tags]
-            models.Tag.objects.exclude(id__in=saved_ids).delete()
-
-        return saved_tags
+    def delete(self):
+        with atomic():
+            tag_ids = [t.get("id") for t in self.initial_data]
+            tags_qs = models.Tag.objects.filter(id__in=tag_ids)
+            tags_qs.delete()
 
 class TagSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False)
 
     class Meta:
         model = models.Tag
-        fields = ["id", "name"]
+        fields = ["id", "name", "parent"]
         list_serializer_class = TagListSerializer
 
 class FileTagListSerializer(serializers.ListSerializer):
