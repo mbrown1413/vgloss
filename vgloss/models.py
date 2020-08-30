@@ -44,7 +44,7 @@ class File(models.Model):
 
     @property
     def tag_ids(self):
-        return self.filetag_set.objects.values_list("tag_id", flat=True)
+        return list(self.filetag_set.values_list("tag_id", flat=True))
 
 class FilePath(models.Model):
     path = models.TextField(primary_key=True)

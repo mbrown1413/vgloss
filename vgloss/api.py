@@ -45,6 +45,11 @@ class FileListApi(APIView):
             paths = models.FilePath.objects.filter(folder=folder)
             qs = qs.filter(paths__in=paths).distinct()
 
+        # Filter by tag
+        tag_filter = self.request.GET.get("tag")
+        if tag_filter is not None:
+            raise NotImplementedError
+
         file_serializer = serializers.FileSerializer(qs, many=True)
         return Response(file_serializer.data)
 

@@ -11,8 +11,8 @@ class FileSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.File
         fields = [
-            "hash", "name", "is_image", "timestamp"
-            #"size"
+            "hash", "name", "is_image", "timestamp", "tags",
+            #"size",
         ]
 
 class FileDetailSerializer(serializers.ModelSerializer):

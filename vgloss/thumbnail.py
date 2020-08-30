@@ -8,6 +8,9 @@ THUMBNAIL_VERSION = 0
 def generate_all_thumbnails():
     updated_files = []
     for file in models.File.objects.iterator():
+        if not file.is_image:
+            continue
+
         thumbnail_path = file.get_thumbnail_path(_absent_ok=True)
         if not os.path.exists(thumbnail_path) or file.thumbnail_version is None or file.thumbnail_version < THUMBNAIL_VERSION:
             generate_thumbnail(file, thumbnail_path)
