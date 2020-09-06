@@ -58,7 +58,7 @@ export default {
   },
   data() {
     return {
-      tags: {},
+      tags: {},  // Map tag ID to tag object
       selectedId: null,
       opened: [],
     };
@@ -105,7 +105,13 @@ export default {
   methods: {
 
     show() {
-      this.tags = JSON.parse(JSON.stringify(this.$store.state.tags));
+      // Convert tag list to mapping from tag ID
+      var tagList = JSON.parse(JSON.stringify(this.$store.state.tags));
+      this.tags = {};
+      for(var tag of tagList) {
+        this.tags[tag.id] = tag;
+      }
+
       this.$refs.modal.show();
     },
 
@@ -132,6 +138,10 @@ export default {
     },
 
     addTag() {
+      // Generate temporary ID for new tag.
+      // Since we can't have a permenant ID until the tag is saved to the
+      // database, we reference by a temporary ID which the backend will
+      // convert to a real ID when we save.
       var newId = "temp" + this.tempCounter;
       this.tempCounter++;
 

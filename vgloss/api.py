@@ -29,7 +29,7 @@ class GalleryApi(APIView):
         )
         return Response(dict(
             folderTree=get_folder_tree(settings.BASE_DIR),
-            tags={tag["id"]: tag for tag in tag_serializer.data},
+            tags=tag_serializer.data,
         ))
 
 
