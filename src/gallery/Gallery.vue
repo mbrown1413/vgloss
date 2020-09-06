@@ -87,10 +87,10 @@
 </style>
 
 <script>
-import GalleryGrid from '../GalleryGrid.vue';
-import FolderFilterTree from '../FolderFilterTree.vue';
-import FileDetailModal from '../FileDetailModal.vue';
-import TagEditModal from '../TagEditModal.vue';
+import GalleryGrid from './GalleryGrid.vue';
+import FolderFilterTree from './FolderFilterTree.vue';
+import FileDetailModal from './FileDetailModal.vue';
+import TagEditModal from './TagEditModal.vue';
 import * as urls from '../urls.js';
 
 /* Gallery URLs

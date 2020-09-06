@@ -20,7 +20,7 @@
 
 <script>
 import { BModal } from "bootstrap-vue/esm/components/modal/modal";
-import * as urls from "./urls.js";
+import * as urls from "../urls.js";
 
 import LRU from "lru-cache";
 
