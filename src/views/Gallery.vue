@@ -9,11 +9,10 @@
         @change="onFolderSelect"
       />
 
-      <!--
       <hr>
-      <h4>Tags</h4>
-      <FolderFilterTree />
-      -->
+      <h4 style="margin-left: 0.25em">
+        Tags <small>(<a href="#" @click.prevent="$refs.tagEditModal.show()">edit</a>)</small>
+      </h4>
     </div>
 
     <div class="gallery-action-pane">
@@ -41,11 +40,13 @@
         </div>
     </div>
 
+    <!-- Modals -->
     <FileDetailModal
       ref="fileDetailModal"
       @next="deltaModalItem(1)"
       @prev="deltaModalItem(-1)"
     />
+    <TagEditModal ref="tagEditModal" />
   </div>
 </template>
 
@@ -89,6 +90,7 @@
 import GalleryGrid from '../GalleryGrid.vue';
 import FolderFilterTree from '../FolderFilterTree.vue';
 import FileDetailModal from '../FileDetailModal.vue';
+import TagEditModal from '../TagEditModal.vue';
 import * as urls from '../urls.js';
 
 /* Gallery URLs
@@ -103,6 +105,7 @@ export default {
     GalleryGrid,
     FolderFilterTree,
     FileDetailModal,
+    TagEditModal,
   },
   data() {
     return {

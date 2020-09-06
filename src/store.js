@@ -9,12 +9,19 @@ export default new Vuex.Store({
 
   state: {
     folderTree: {},
+    tags: {},
   },
+
   mutations: {
     updateFolderTree(state, newFolderTree) {
       state.folderTree = newFolderTree;
     },
+    updateTags(state, newTags) {
+      state.tags = newTags;
+    },
+
   },
+
   actions: {
     galleryRequest({commit}) {
       var xhr = new XMLHttpRequest();
@@ -22,6 +29,7 @@ export default new Vuex.Store({
         if(xhr.status == 200) {
           var data = JSON.parse(xhr.response);
           commit("updateFolderTree", data.folderTree);
+          commit("updateTags", data.tags);
         } else {
           //TODO: Error handling
         }
@@ -31,6 +39,7 @@ export default new Vuex.Store({
       xhr.send();
     },
   },
+
   getters: {
     listFolders: (state) => (path) => {
       var dirNode = state.folderTree;
@@ -44,4 +53,5 @@ export default new Vuex.Store({
       return Object.keys(dirNode);
     },
   },
+
 })

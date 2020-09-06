@@ -2,7 +2,7 @@
     <Tree
       :data="treeComponentData"
       @toggle="onToggle"
-      @change="change"
+      @change="onChange"
     />
 </template>
 
@@ -53,7 +53,7 @@ export default {
       this.open(event.data.value.path, true);
     },
 
-    change(event) {
+    onChange(event) {
       this.$emit("change", [event.data.value.path]);
       this.open(event.data.value.path);
     },
