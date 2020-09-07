@@ -5,6 +5,21 @@ import * as urls from './urls.js';
 
 Vue.use(Vuex)
 
+export function getCookie(name) {
+  // https://docs.djangoproject.com/en/3.1/ref/csrf/#ajax
+  if (document.cookie && document.cookie !== '') {
+    var cookies = document.cookie.split(';');
+    for (var i = 0; i < cookies.length; i++) {
+      var cookie = cookies[i].trim();
+      // Does this cookie string begin with the name we want?
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        return decodeURIComponent(cookie.substring(name.length + 1));
+      }
+    }
+  }
+  return null;
+}
+
 export default new Vuex.Store({
 
   state: {
@@ -23,6 +38,7 @@ export default new Vuex.Store({
   },
 
   actions: {
+
     galleryRequest({commit}) {
       var xhr = new XMLHttpRequest();
       xhr.addEventListener("load", () => {
@@ -38,6 +54,24 @@ export default new Vuex.Store({
       xhr.setRequestHeader("Accept", "application/json");
       xhr.send();
     },
+
+    saveTags({commit}, newTags) {
+      var xhr = new XMLHttpRequest();
+      xhr.addEventListener("load", () => {
+        if(xhr.status == 200) {
+          var data = JSON.parse(xhr.response);
+          commit("updateTags", data);
+        } else {
+          //TODO: Error handling
+        }
+      });
+      xhr.open("POST", urls.updateTags());
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader("Accept", "application/json");
+      xhr.setRequestHeader("X-CSRFToken", getCookie("csrftoken"));
+      xhr.send(JSON.stringify(newTags));
+    },
+
   },
 
   getters: {

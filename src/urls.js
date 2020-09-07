@@ -64,3 +64,6 @@ export function fileThumbnail(fileHash) {
   return "/file/"+fileHash+"/thumbnail";
 }
 
+export function updateTags() {
+  return "/api/tag/";
+}

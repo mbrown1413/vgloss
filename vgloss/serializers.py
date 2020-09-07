@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from django.db.transaction import atomic
 from rest_framework import serializers
 from rest_framework.exceptions import NotFound
@@ -24,25 +26,63 @@ class FileDetailSerializer(serializers.ModelSerializer):
 
 class TagListSerializer(serializers.ListSerializer):
 
+    def to_internal_value(self, data):
+        data = deepcopy(data)
+
+        # If the frontend sends a string ID, it is a temporary ID. Remove it
+        # here so it will validate. Later, in save(), we'll look at
+        # initial_data to resolve the temporary IDs in the parent links to real
+        # ones.
+        for tag in data:
+            if isinstance(tag.get("id"), str):
+                del tag["id"]
+            if isinstance(tag.get("parent"), str):
+                tag["parent"] = None
+
+        return super().to_internal_value(data)
+
     def save(self):
         with atomic():
             tag_ids = [t.get("id") for t in self.validated_data]
             tags_qs = models.Tag.objects.filter(id__in=tag_ids)
-            tag_mapping = {tag.id: tag for tag in tags_qs}
+            tag_map = {tag.id: tag for tag in tags_qs}
 
             # Perform creation / update
+            saved_tags = []
             for tag_data in self.validated_data:
                 tag_id = tag_data.get("id")
                 if tag_id is None:
                     tag = None
                 else:
-                    tag = tag_mapping.get(tag_id)
+                    tag = tag_map.get(tag_id)
                     if tag is None:
                         raise NotFound(f'ID {tag_id} not found', 404)
                 if tag is None:
-                    self.child.create(tag_data)
+                    tag = self.child.create(tag_data)
                 else:
                     self.child.update(tag, tag_data)
+                saved_tags.append(tag)
+
+            # Handle temporary IDs
+            # Strings in id or parent fields are temporary IDs. They are
+            # present in initial_data but removed in validation. We take a
+            # 2-pass approach to saving tags that used temporary IDs to
+            # reference their parent.
+            #
+            # 1) Get a mapping of temp IDs to the real ID that was saved in the
+            # database.
+            temp_id_map = {}
+            for tag, initial_tag_data in zip(saved_tags, self.initial_data):
+                temp_tag_id = initial_tag_data.get("id")
+                if isinstance(temp_tag_id, str):
+                    temp_id_map[temp_tag_id] = tag.id
+            # 2) Find tags with temp IDs in their parent field and re-save them
+            # with the real ID.
+            for tag, initial_tag_data in zip(saved_tags, self.initial_data):
+                temp_parent_id = initial_tag_data.get("parent")
+                if isinstance(temp_parent_id, str):
+                    tag.parent_id = temp_id_map[temp_parent_id]
+                    tag.save()
 
     def delete(self):
         with atomic():

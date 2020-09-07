@@ -58,6 +58,35 @@ class TestTag(TestCase):
             ]
         )
 
+    def test_create_temp_id(self):
+        """
+        Frontend can pass temporary string IDs for tags before they are
+        saved to the database.
+        """
+        # Create two tags with a relationship
+        # (not possible temporary IDs)
+        response = self.client.post(self.url, [
+            {"id": "temp1", "name": "tag1", "parent": None},
+            {"id": "temp2", "name": "tag2", "parent": "temp1"},
+        ], content_type="application/json")
+        self.assertEqual(response.status_code, 200)
+        tag1 = models.Tag.objects.get(name="tag1")
+        tag2 = models.Tag.objects.get(name="tag2")
+        self.assertSetEqual(
+            set(tuple(tag.items()) for tag in response.data),
+            {
+                tuple({"id": tag1.id, "name": "tag1", "parent": None}.items()),
+                tuple({"id": tag2.id, "name": "tag2", "parent": tag1.id}.items()),
+            }
+        )
+        self.assertSetEqual(
+            set(tuple(tag.items()) for tag in models.Tag.objects.values()),
+            {
+                tuple({"id": tag1.id, "name": "tag1", "parent_id": None}.items()),
+                tuple({"id": tag2.id, "name": "tag2", "parent_id": tag1.id}.items()),
+            }
+        )
+
     def test_update(self):
         tag1 = models.Tag.objects.create(name="tag1")
 

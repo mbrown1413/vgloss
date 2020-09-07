@@ -24,7 +24,7 @@
           >+</button>
 
         </div>
-        <div class="col-9" v-if="selectedId">
+        <div class="col-9" v-if="selectedTag">
 
           <h5>{{ tagPath(selectedTag).join(" -> ") }}</h5>
           <div class="input-group">
@@ -112,6 +112,7 @@ export default {
         this.tags[tag.id] = tag;
       }
 
+      this.selectedId = null;
       this.$refs.modal.show();
     },
 
@@ -134,7 +135,7 @@ export default {
     },
 
     onSave() {
-      //TODO
+      this.$store.dispatch("saveTags", Object.values(this.tags));
     },
 
     addTag() {
