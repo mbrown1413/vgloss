@@ -38,9 +38,7 @@ export function folderListFromPath(path) {
 
 /********* Backend *********/
 
-export function apiGallery() {
-  return "/api/gallery";
-}
+export const apiGallery = "/api/gallery";
 
 export function apiFileList(params={}) {
   var paramString = "";
@@ -64,6 +62,4 @@ export function fileThumbnail(fileHash) {
   return "/file/"+fileHash+"/thumbnail";
 }
 
-export function updateTags() {
-  return "/api/tag/";
-}
+export const updateTags = "/api/tag/";

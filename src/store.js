@@ -50,7 +50,7 @@ export default new Vuex.Store({
           //TODO: Error handling
         }
       });
-      xhr.open("GET", urls.apiGallery());
+      xhr.open("GET", urls.apiGallery);
       xhr.setRequestHeader("Accept", "application/json");
       xhr.send();
     },
@@ -73,7 +73,7 @@ export default new Vuex.Store({
             //TODO: Error handling
           }
         });
-        xhr.open("DELETE", urls.updateTags());
+        xhr.open("DELETE", urls.updateTags);
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.setRequestHeader("Accept", "application/json");
         xhr.setRequestHeader("X-CSRFToken", getCookie("csrftoken"));
@@ -90,7 +90,7 @@ export default new Vuex.Store({
           //TODO: Error handling
         }
       });
-      xhr.open("POST", urls.updateTags());
+      xhr.open("POST", urls.updateTags);
       xhr.setRequestHeader('Content-Type', 'application/json');
       xhr.setRequestHeader("Accept", "application/json");
       xhr.setRequestHeader("X-CSRFToken", getCookie("csrftoken"));
