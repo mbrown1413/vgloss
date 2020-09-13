@@ -27,7 +27,7 @@
         <div class="col-9" v-if="selectedTag">
 
           <h5>{{ tagPath(selectedTag).join(" -> ") }}</h5>
-          <div class="input-group">
+          <div class="input-group mt-2">
             <div class="input-group-prepend">
               <label class="input-group-text" for="tagEditor-tag-name">
                 Name
@@ -35,6 +35,11 @@
             </div>
             <input v-model="selectedTag.name" id="tagEditor-tag-name">
           </div>
+
+          <button
+            class="btn btn-danger mt-5"
+            @click="deleteTag(selectedTag.id)"
+          >Remove</button>
 
         </div>
       </div>
@@ -152,6 +157,11 @@ export default {
         parent: null,
       });
       this.selectedId = newId;
+    },
+
+    deleteTag(tagId) {
+      this.$delete(this.tags, tagId);
+      //TODO: Delete all children too
     },
 
     tagPath(tag) {

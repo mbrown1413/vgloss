@@ -56,7 +56,32 @@ export default new Vuex.Store({
     },
 
     saveTags({commit}, newTags) {
-      var xhr = new XMLHttpRequest();
+      // Find deleted tags
+      var stillPresentTagIds = new Set(newTags.map(tag => tag.id));
+      var deleteData = [];
+      for(var tag of this.state.tags) {
+        if(!stillPresentTagIds.has(tag.id)) {
+          deleteData.push({id: tag.id});
+        }
+      }
+
+      // Delete
+      if(deleteData.length > 0) {
+        var xhr = new XMLHttpRequest();
+        xhr.addEventListener("load", () => {
+          if(xhr.status != 200) {
+            //TODO: Error handling
+          }
+        });
+        xhr.open("DELETE", urls.updateTags());
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.setRequestHeader("Accept", "application/json");
+        xhr.setRequestHeader("X-CSRFToken", getCookie("csrftoken"));
+        xhr.send(JSON.stringify(deleteData));
+      }
+
+      // Create / Update
+      xhr = new XMLHttpRequest();
       xhr.addEventListener("load", () => {
         if(xhr.status == 200) {
           var data = JSON.parse(xhr.response);
