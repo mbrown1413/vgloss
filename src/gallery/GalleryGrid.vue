@@ -10,12 +10,12 @@
         <div
           class="gallery-item"
           :class="{'gallery-item-selected': selectedItemSet.has(item.name)}"
-          @dblclick="$emit('doubleClick', item)"
+          @dblclick="$emit('double-click', item)"
         >
           <div
             class="gallery-item-image"
             :style="{backgroundImage: 'url('+item.thumbnail+')'}"
-          />
+          ></div>
           {{ item.name }}
         </div>
       </div>
@@ -23,7 +23,7 @@
     <div
       class="gallery-select-overlay"
       :style="selectOverlayStyle"
-    />
+    ></div>
   </div>
 </template>
 

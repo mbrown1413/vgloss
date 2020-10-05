@@ -27,7 +27,7 @@ export default {
   },
   model: {
     prop: "selectedIds",
-    event: "changeSelected",
+    event: "change-selected",
   },
   props: {
     // List of items to display in tree. For each item, following
@@ -130,7 +130,7 @@ export default {
     /* Event Handlers */
 
     onChange(event) {
-      this.$emit("changeSelected", [event.data.value.id]);
+      this.$emit("change-selected", [event.data.value.id]);
       this.open(event.data.value.path);
     },
 

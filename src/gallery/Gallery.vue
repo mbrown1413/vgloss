@@ -6,7 +6,7 @@
       <Tree
         :items="folderItems"
         :selectedIds="[selectedFolder]"
-        @changeSelected="onFolderSelect"
+        @change-selected="onFolderSelect"
       />
 
       <hr>
@@ -29,7 +29,7 @@
       :items="gridItems"
       :selectedItems="selectedItems"
       v-model="selectedItems"
-      @doubleClick="onItemDoubleClick"
+      @double-click="onItemDoubleClick"
     />
 
     <div

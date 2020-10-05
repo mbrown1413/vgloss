@@ -12,7 +12,7 @@
       Loading...
     </div>
     <div v-else>
-      <img :src="imageUrl" />
+      <img :src="imageUrl">
       {{ details }}
     </div>
   </b-modal>

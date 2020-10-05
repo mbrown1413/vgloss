@@ -31,7 +31,7 @@
             <div class="input-group-prepend">
               <label class="input-group-text" for="tagEditor-tag-name">
                 Name
-                </label>
+              </label>
             </div>
             <input v-model="selectedTag.name" class="form-control" id="tagEditor-tag-name">
           </div>
@@ -119,9 +119,9 @@ export default {
 
     treeComponentData() {
       // Create flat list of tree nodes indexed by id
-      this.nodesById = {};
+      var nodesById = {};
       for(var tag of Object.values(this.tags)) {
-        this.nodesById[tag.id] = {
+        nodesById[tag.id] = {
           text: tag.name,
           value: tag,
           icon: false,
@@ -135,13 +135,13 @@ export default {
       // Add child nodes to their parent
       for(tag of Object.values(this.tags)) {
         if(tag.parent !== null) {
-          this.nodesById[tag.parent].children.push(
-            this.nodesById[tag.id]
+          nodesById[tag.parent].children.push(
+            nodesById[tag.id]
           )
         }
       }
       // Sort childern alphabetically
-      for(var node of Object.values(this.nodesById)) {
+      for(var node of Object.values(nodesById)) {
         node.children.sort((a, b) => {
           a = a.text.toUpperCase();
           b = b.text.toUpperCase();
@@ -159,12 +159,12 @@ export default {
         for(tag of this.tagPath(this.tags[this.selectedId])) {
           // Open in local nodesById and also add to this.opened for future
           // updates.
-          this.nodesById[tag.id].state.opened = true;
+          nodesById[tag.id].state.opened = true;
           this.openTag(tag.id);
         }
       }
       // Return root nodes (ones without parents)
-      return Object.values(this.nodesById).filter((node) =>
+      return Object.values(nodesById).filter((node) =>
         node.value.parent === null
       );
     },
@@ -184,7 +184,7 @@ export default {
 
       while(stack.length) {
         var stackItem = stack.pop();
-        var node = stackItem.node;
+        node = stackItem.node;
         var depth = stackItem.depth;
 
         options.push([node.value, depth]);
@@ -255,8 +255,21 @@ export default {
         this.selectedId = null;
       }
 
+      function findNode(nodes, id) {
+        for(var node of nodes) {
+          if(node.value.id == id) {
+            return node;
+          }
+          var foundNode = findNode(node.children, id);
+          if(foundNode != null) {
+            return foundNode;
+          }
+        }
+        return null;
+      }
+      var tagNode = findNode(this.treeComponentData, tagId);
+
       // Delete all children too
-      var tagNode = this.nodesById[tagId];
       for(var child of tagNode.children) {
         this.deleteTag(child.value.id);
       }
@@ -293,7 +306,7 @@ export default {
       var frontier = [id];  // New IDs this round
       do {
         var newFrontier = [];
-        for(var id of frontier) {
+        for(id of frontier) {
           if(childrenByTagId[id] !== undefined) {
             newFrontier.push(...childrenByTagId[id]);
           }

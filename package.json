@@ -22,12 +22,13 @@
     "webpack": "^4.42.1"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "~4.3.0",
-    "@vue/cli-plugin-eslint": "~4.3.0",
-    "@vue/cli-service": "~4.3.0",
-    "babel-eslint": "^10.1.0",
-    "eslint": "^6.7.2",
-    "eslint-plugin-vue": "^6.2.2"
+    "@vue/cli-plugin-babel": "",
+    "@vue/cli-plugin-eslint": "",
+    "@vue/cli-service": "",
+    "babel-eslint": "",
+    "eslint": "",
+    "eslint-plugin-vue": "",
+    "eslint-webpack-plugin": ""
   },
   "eslintConfig": {
     "root": true,
@@ -41,7 +42,39 @@
     "parserOptions": {
       "parser": "babel-eslint"
     },
-    "rules": {}
+    "rules": {
+      "vue/html-indent": [
+        "warn",
+        2
+      ],
+      "vue/max-attributes-per-line": [
+        "warn",
+        {
+          "singleline": 3,
+          "multiline": {
+            "max": 1,
+            "allowFirstLine": true
+          }
+        }
+      ],
+      "vue/html-self-closing": [
+        "warn",
+        {
+          "html": {
+            "normal": "never"
+          }
+        }
+      ],
+      "vue/v-bind-style": "off",
+      "vue/v-on-style": "off",
+      "no-console": "off",
+      "no-unused-vars": [
+        "error",
+        {
+          "args": "none"
+        }
+      ]
+    }
   },
   "browserslist": [
     "> 1%",

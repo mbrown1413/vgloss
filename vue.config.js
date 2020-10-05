@@ -1,4 +1,5 @@
 const path = require("path");
+const ESLintPlugin = require('eslint-webpack-plugin');
 
 module.exports = {
   lintOnSave: false,
@@ -17,5 +18,9 @@ module.exports = {
         },
       },
     },
+    plugins: [new ESLintPlugin({
+      files: "src/",
+      extensions: ["js", "vue"],
+    })],
   },
 }
