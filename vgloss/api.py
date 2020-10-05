@@ -10,14 +10,14 @@ from rest_framework.generics import GenericAPIView
 from . import models, serializers
 
 
-def get_folder_tree(path):
-    tree = {}
+def get_folders(path):
     for entry in os.scandir(path):
         if entry.name == ".vgloss":
             continue
         elif entry.is_dir() and not entry.is_symlink():
-            tree[entry.name] = get_folder_tree(entry.path)
-    return tree
+            yield entry.name
+            for subfolder in get_folders(entry.path):
+                yield entry.name + "/" + subfolder
 
 class GalleryApi(APIView):
     """Retrieve global information needed to show the gallery."""
@@ -28,7 +28,7 @@ class GalleryApi(APIView):
             many=True,
         )
         return Response(dict(
-            folderTree=get_folder_tree(settings.BASE_DIR),
+            folders=list(get_folders(settings.BASE_DIR)),
             tags=tag_serializer.data,
         ))
 

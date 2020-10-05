@@ -3,10 +3,10 @@
 
     <div class="gallery-filter-pane">
       <h4 style="margin-left: 0.25em">Folders</h4>
-      <FolderFilterTree
-        :tree="folderTree"
-        :selected="[selectedFolder]"
-        @change="onFolderSelect"
+      <Tree
+        :items="folderItems"
+        :selectedIds="[selectedFolder]"
+        @changeSelected="onFolderSelect"
       />
 
       <hr>
@@ -35,9 +35,9 @@
     <div
       class="gallery-info-pane"
     >
-        <div v-if="selectedItems">
-          {{ selectedItems.join(" | ") }}
-        </div>
+      <div v-if="selectedItems">
+        {{ selectedItems.join(" | ") }}
+      </div>
     </div>
 
     <!-- Modals -->
@@ -88,7 +88,7 @@
 
 <script>
 import GalleryGrid from './GalleryGrid.vue';
-import FolderFilterTree from './FolderFilterTree.vue';
+import Tree from '../Tree.vue';
 import FileDetailModal from './FileDetailModal.vue';
 import TagEditModal from './TagEditModal.vue';
 import * as urls from '../urls.js';
@@ -103,7 +103,7 @@ export default {
   name: 'Gallery',
   components: {
     GalleryGrid,
-    FolderFilterTree,
+    Tree,
     FileDetailModal,
     TagEditModal,
   },
@@ -120,8 +120,21 @@ export default {
   },
   computed: {
 
-    folderTree() {
-      return this.$store.state.folderTree;
+    folderItems() {
+      var items = [{
+        id: "",
+        text: "Root",
+        parent: null,
+      }];
+      for(var path of this.$store.state.folders) {
+        var lastSlashIdx = path.lastIndexOf("/");
+        items.push({
+          id: path,
+          text: path.slice(lastSlashIdx+1),
+          parent: lastSlashIdx == -1 ? "" : path.slice(0, lastSlashIdx),
+        });
+      }
+      return items;
     },
 
     selectedFolder() {
@@ -143,8 +156,7 @@ export default {
       var items = [];
 
       // Folders
-      var folders = this.$store.getters.listFolders(this.selectedFolder);
-      for(var folder of folders) {
+      for(var folder of this.$store.getters.listFolders(this.selectedFolder)) {
         items.push({
           type: "folder",
           name: folder,

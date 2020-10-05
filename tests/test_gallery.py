@@ -20,7 +20,7 @@ class TestScan(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.data, {
-            "folderTree": {"dir1": {}},
+            "folders": ["dir1"],
             "tags": [],
         })
 
@@ -29,7 +29,7 @@ class TestScan(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.data, {
-            "folderTree": {"dir1": {}},
+            "folders": ["dir1"],
             "tags": [
                 {"id": tag1.id, "name": "tag1", "parent": None},
             ],

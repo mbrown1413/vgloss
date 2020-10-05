@@ -23,13 +23,13 @@ export function getCookie(name) {
 export default new Vuex.Store({
 
   state: {
-    folderTree: {},
+    folders: [],
     tags: [],
   },
 
   mutations: {
-    updateFolderTree(state, newFolderTree) {
-      state.folderTree = newFolderTree;
+    updateFolders(state, newFolders) {
+      state.folders = newFolders;
     },
     updateTags(state, newTags) {
       state.tags = newTags;
@@ -44,7 +44,7 @@ export default new Vuex.Store({
       xhr.addEventListener("load", () => {
         if(xhr.status == 200) {
           var data = JSON.parse(xhr.response);
-          commit("updateFolderTree", data.folderTree);
+          commit("updateFolders", data.folders);
           commit("updateTags", data.tags);
         } else {
           //TODO: Error handling
@@ -101,15 +101,15 @@ export default new Vuex.Store({
 
   getters: {
     listFolders: (state) => (path) => {
-      var dirNode = state.folderTree;
-      for(var folder of path.split("/")) {
-        if(!folder.length) continue
-        dirNode = dirNode[folder];
-        if(dirNode === undefined) {
-          return [];
+      var foundFolders = [];
+      var nParts = path == "" ? 0 : path.split("/").length;
+      for(var candidate of state.folders) {
+        var candidateParts = candidate.split("/");
+        if(candidate.startsWith(path) && candidateParts.length == nParts+1) {
+          foundFolders.push(candidateParts[candidateParts.length-1]);
         }
       }
-      return Object.keys(dirNode);
+      return foundFolders;
     },
   },
 
