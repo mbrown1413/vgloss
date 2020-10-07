@@ -13,6 +13,10 @@
       <h4 style="margin-left: 0.25em">
         Tags <small>(<a href="#" @click.prevent="$refs.tagEditModal.show()">edit</a>)</small>
       </h4>
+      <Tree
+        :items="tagItems"
+        v-model="selectedTags"
+      />
     </div>
 
     <div class="gallery-action-pane">
@@ -111,6 +115,7 @@ export default {
     return {
       files: [],
       selectedItems: [],
+      selectedTags: [],
       modalItem: null,
       modalDetails: null,
     };
@@ -140,6 +145,18 @@ export default {
     selectedFolder() {
       var folder = this.$route.params.pathMatch;
       return folder || "";
+    },
+
+    tagItems() {
+      var items = [];
+      for(var tag of this.$store.state.tags) {
+        items.push({
+          id: tag.id,
+          text: tag.name,
+          parent: tag.parent,
+        });
+      }
+      return items;
     },
 
     queryParams() {
