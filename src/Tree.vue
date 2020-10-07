@@ -46,6 +46,12 @@ export default {
   data() {
     return {
       openedIds: [],
+
+      /* Map item ID to list of IDs leading to the item with that ID. */
+      pathById: {},
+
+      /* Map ID to the node with that ID. */
+      nodesById: {},
     };
   },
   computed: {
@@ -57,7 +63,7 @@ export default {
         nodesById[item.id] = {
           text: item.text,
           value: item,
-          icon: false,  //TODO
+          icon: false,
           state: {
             opened: this.openedIds.includes(item.id),
             selected: this.selectedIds.includes(item.id),
@@ -69,7 +75,11 @@ export default {
       // Add child nodes to their parent
       for(item of this.items) {
         if(item.parent !== null && item.parent !== undefined) {
-          nodesById[item.parent].children.push(
+          var parent = nodesById[item.parent];
+          if(parent === undefined) {
+            throw "Item id "+item.id+" references nonexistant parent id "+item.parent;
+          }
+          parent.children.push(
             nodesById[item.id]
           );
         }
@@ -91,24 +101,10 @@ export default {
       }
 
       // Return root nodes (ones without parents)
+      //TODO: Sort this alphabetically too
       return Object.values(nodesById).filter((node) =>
         node.value.parent === null || node.value.parent === undefined
       );
-    },
-
-    /* Map item ID to list of IDs leading to the item with that ID. */
-    pathById() {
-      var pathById = {};
-      function recurse(nodes, path=[]) {
-        for(var node of nodes) {
-          pathById[node.value.id] = path;
-          var newPath = path.slice();
-          newPath.push(node.value.id);
-          recurse(node.children, newPath);
-        }
-      }
-      recurse(this.treeComponentData);
-      return pathById;
     },
 
   },
@@ -127,6 +123,56 @@ export default {
         this.open(nodeId, true);
     },
 
+    /* Tree helpers */
+
+    walkTree: function*() {
+      var stack = [];
+      for(var node of this.treeComponentData) {
+        stack.unshift({node: node, depth: 0});
+      }
+      while(stack.length) {
+        var stackItem = stack.pop();
+        yield {
+          id: stackItem.node.value.id,
+          item: stackItem.node.value,
+          depth: stackItem.depth,
+        };
+        for(var child of stackItem.node.children) {
+          stack.push({node: child, depth: stackItem.depth+1});
+        }
+      }
+    },
+
+    /* List of the IDs of the given item's childen, their children, etc. */
+    getDescendantItems: function*(itemId) {
+      // Start list with given Id and expand to children until an iteration
+      // adds no more descendants.
+      var node = this.nodesById[itemId];
+      if(node === undefined) {
+        return;
+      }
+      var frontier = [node];  // New nodes this iteration
+      do {
+        var newFrontier = [];
+        for(node of frontier) {
+          newFrontier.push(...node.children);
+          yield node.value;
+        }
+        frontier = newFrontier;
+      } while(frontier.length > 0);
+    },
+
+    /* List of items leading to the given ID starting at the root */
+    getItemPath: function*(itemId) {
+      var path = this.pathById[itemId];
+      if(path === undefined) {
+        return [];
+      }
+      for(var id of path) {
+        yield this.nodesById[id].value;
+      }
+    },
+
     /* Event Handlers */
 
     onChange(event) {
@@ -140,6 +186,26 @@ export default {
 
   },
   watch: {
+
+    treeComponentData: {
+      handler() {
+        this.pathById = {};
+        this.nodesById = {};
+
+        var recurse = (nodes, path=[]) => {
+          for(var node of nodes) {
+            this.pathById[node.value.id] = path.concat(node.value.id);
+            this.nodesById[node.value.id] = node;
+
+            var newPath = path.slice();
+            newPath.push(node.value.id);
+            recurse(node.children, newPath);
+          }
+        };
+        recurse(this.treeComponentData);
+      },
+      immediate: true,
+    },
 
     selectedIds: {
       handler() {

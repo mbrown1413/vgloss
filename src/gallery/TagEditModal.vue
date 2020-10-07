@@ -13,9 +13,9 @@
         <div class="col-3">
 
           <Tree
-            :data="treeComponentData"
-            @change="onChange"
-            @toggle="onToggle"
+            ref="tree"
+            :items="treeData"
+            v-model="selectedIds"
           />
           <br>
           <button
@@ -26,7 +26,7 @@
         </div>
         <div class="col-9" v-if="selectedTag">
 
-          <h5>{{ tagPath(selectedTag).map(tag => tag.name).join(" &rarr; ") }}</h5>
+          <h5>{{ selectedTagPath.map(tag => tag.text).join(" &rarr; ") }}</h5>
           <div class="input-group mt-3">
             <div class="input-group-prepend">
               <label class="input-group-text" for="tagEditor-tag-name">
@@ -45,11 +45,11 @@
             <select v-model="selectedTag.parent" class="form-control" id="tagEditor-tag-parent">
               <option :value="null">(Root tag)</option>
               <option
-                v-for="[tag, depth] in parentOptions"
+                v-for="{tag, depth, disabled} in parentOptions"
                 :key="tag.id"
                 :value="tag.id"
-                :disabled="tagDescendantIds(selectedId).includes(tag.id)"
-                v-html="'&nbsp;'.repeat(depth*5) + tag.name"
+                :disabled="disabled"
+                v-html="'&nbsp;'.repeat(depth*5) + tag.text"
               >
               </option>
             </select>
@@ -72,23 +72,10 @@
 
 <script>
 import { BModal } from "bootstrap-vue/esm/components/modal/modal";
-import {Tree} from "tree-vue-component";
+import Tree from '../Tree.vue';
 
 /* TagEditModal
  * Edit tree of tags.
- *
- * There are a few different datatypes used here internally and externally to
- * track information about tags:
- *
- *   * Tag ID - Idetnifier used everywhere to uniquely reference a tag. Integer
- *       tag IDs are saved to the database, while string tag IDs are temporary,
- *       and are replaced with integers when the tag is saved.
- *   * Tag Object - The tag structure presented and stored in the backend API.
- *   * Tag tree and nodes - Generated in the computed property
- *       `treeComponentData`, this is a derived data structure storing
- *       information for the tree component. This is also used as a convenience
- *       in other methods because it stores a list of children and a reference
- *       to the tag object for each node.
  *
  * When opening the modal, `tags` is populated with the current tags objects.
  * This is edited as a local copy, and only saved when the "Save" button is
@@ -103,98 +90,52 @@ export default {
   data() {
     return {
       tags: {},  // Map tag ID to tag object
-      selectedId: null,
-      opened: [],
+      selectedIds: [],
     };
-  },
-  created() {
-    this.tempCounter = 0;
-
-    // nodesById is generated inside `treeComponentData`. It isn't good
-    // practice for computed properties to have side effects, but it's
-    // convenient in this case.
-    this.nodesById = {};  // Map tag ID to tree node
   },
   computed: {
 
-    treeComponentData() {
-      // Create flat list of tree nodes indexed by id
-      var nodesById = {};
-      for(var tag of Object.values(this.tags)) {
-        nodesById[tag.id] = {
-          text: tag.name,
-          value: tag,
-          icon: false,
-          state: {
-            opened: this.opened.includes(tag.id),
-            selected: this.selectedId == tag.id,
-          },
-          children: [],
-        };
-      }
-      // Add child nodes to their parent
-      for(tag of Object.values(this.tags)) {
-        if(tag.parent !== null) {
-          nodesById[tag.parent].children.push(
-            nodesById[tag.id]
-          )
-        }
-      }
-      // Sort childern alphabetically
-      for(var node of Object.values(nodesById)) {
-        node.children.sort((a, b) => {
-          a = a.text.toUpperCase();
-          b = b.text.toUpperCase();
-          if (a < b) {
-            return -1;
-          } else if(a > b) {
-            return 1;
-          } else {
-            return 0;
-          }
-        });
-      }
-      // Open path leading up to selected node
-      if(this.selectedId !== null) {
-        for(tag of this.tagPath(this.tags[this.selectedId])) {
-          // Open in local nodesById and also add to this.opened for future
-          // updates.
-          nodesById[tag.id].state.opened = true;
-          this.openTag(tag.id);
-        }
-      }
-      // Return root nodes (ones without parents)
-      return Object.values(nodesById).filter((node) =>
-        node.value.parent === null
-      );
+    selectedId() {
+      return this.selectedIds.length == 0 ? null : this.selectedIds[0];
     },
 
     selectedTag() {
       return this.tags[this.selectedId] || null;
     },
 
+    selectedTagPath() {
+      return [...this.$refs.tree.getItemPath(this.selectedId)];
+    },
+
+    treeData() {
+      var items = [];
+      for(var tag of Object.values(this.tags)) {
+        items.push({
+          id: tag.id,
+          text: tag.name,
+          parent: tag.parent,
+        });
+      }
+      return items;
+    },
+
     /* Dropdown options for the selected tag's parent. */
     parentOptions() {
-      var options = [];
-      var stack = [];
-
-      for(var node of this.treeComponentData) {
-        stack.unshift({node: node, depth: 0});
+      var disabledIds = new Set([this.selectedId]);
+      for(var item of this.$refs.tree.getDescendantItems(this.selectedId)) {
+        disabledIds.add(item.id);
       }
 
-      while(stack.length) {
-        var stackItem = stack.pop();
-        node = stackItem.node;
-        var depth = stackItem.depth;
-
-        options.push([node.value, depth]);
-        for(var child of node.children) {
-          stack.push({node: child, depth: depth+1});
-        }
+      var options = [];
+      for(var visit of this.$refs.tree.walkTree()) {
+        options.push({
+          tag: visit.item,
+          depth: visit.depth,
+          disabled: disabledIds.has(visit.id),
+        });
       }
       return options;
     },
-
 
   },
   methods: {
@@ -207,26 +148,13 @@ export default {
         this.$set(this.tags, tag.id, tag);
       }
 
-      this.selectedId = null;
+      this.tempCounter = 0;
+      this.select(null)
       this.$refs.modal.show();
     },
 
-    openTag(tagId, toggle=false) {
-      var index = this.opened.indexOf(tagId);
-      if(index == -1) {
-        this.opened.push(tagId);
-      } else if(toggle) {
-        this.opened.splice(index, 1);
-      }
-    },
-
-    onToggle(event) {
-      this.openTag(event.data.value.id, true);
-    },
-
-    onChange(event) {
-      this.selectedId = event.data.value.id;
-      this.openTag(event.data.value.id);
+    select(tagId) {
+      this.selectedIds = tagId == null ? [] : [tagId];
     },
 
     onSave() {
@@ -246,75 +174,21 @@ export default {
         name: "New Tag "+this.tempCounter,
         parent: null,
       });
-      this.selectedId = newId;
+      this.select(newId);
     },
 
     deleteTag(tagId) {
       this.$delete(this.tags, tagId);
       if(this.selectedId == tagId) {
-        this.selectedId = null;
+        this.select(null);
       }
 
-      function findNode(nodes, id) {
-        for(var node of nodes) {
-          if(node.value.id == id) {
-            return node;
-          }
-          var foundNode = findNode(node.children, id);
-          if(foundNode != null) {
-            return foundNode;
-          }
-        }
-        return null;
-      }
-      var tagNode = findNode(this.treeComponentData, tagId);
-
-      // Delete all children too
-      for(var child of tagNode.children) {
-        this.deleteTag(child.value.id);
-      }
-    },
-
-    tagPath(tag) {
-      var path = [];
-      do {
-        path.unshift(tag);
-        tag = tag.parent !== null ? this.tags[tag.parent] : null;
-      } while(tag);
-      return path;
-    },
-
-    /* List of the IDs of the given tag's childen, their children, etc.
-     * Includes the given tag ID for convenience. */
-    tagDescendantIds(id) {
-      // Two-pass approach to getting all descendants.
-      // 1) Build list of children for each tag
-      var childrenByTagId = {};  // Map tag ID to list of children.
-      for(var tag of Object.values(this.tags)) {
-        var childId = tag.id;
-        var parentId = tag.parent;
-        if(childId !== null) {
-          if(childrenByTagId[parentId] === undefined) {
-            childrenByTagId[parentId] = [];
-          }
-          childrenByTagId[parentId].push(childId);
+      for(var item of this.$refs.tree.getDescendantItems(tagId)) {
+        this.$delete(this.tags, item.id);
+        if(this.selectedId == item.id) {
+          this.select(null);
         }
       }
-      // 2) Start list with given Id and expand to children until an
-      //    iteration adds no more descendants.
-      var descendants = [id];
-      var frontier = [id];  // New IDs this round
-      do {
-        var newFrontier = [];
-        for(id of frontier) {
-          if(childrenByTagId[id] !== undefined) {
-            newFrontier.push(...childrenByTagId[id]);
-          }
-        }
-        frontier = newFrontier;
-        descendants.push(...frontier);
-      } while(frontier.length > 0);
-      return descendants;
     },
 
   },
