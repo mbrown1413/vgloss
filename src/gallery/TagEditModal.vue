@@ -3,10 +3,39 @@
     ref="modal"
     title="Edit Tags"
     centered
-    ok-title="Save"
+    hide-header-close
+    no-close-on-backdrop
     size="xl"
-    @ok="onSave"
   >
+
+    <template v-slot:modal-footer>
+      <div style="position: absolute; left: 0;">
+        <button
+          class="btn btn-danger ml-3 float-right"
+          @click="deleteTag(selectedTag.id)"
+          :disabled="selectedTag == null"
+        >-</button>
+        <button
+          class="btn btn-success ml-5 float-right"
+          @click="addTag"
+        >+</button>
+      </div>
+
+      <button
+        type="button"
+        class="btn btn-secondary"
+        @click="onCancel"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="btn btn-primary"
+        @click="onSave"
+      >
+        Save
+      </button>
+    </template>
 
     <div class="container">
       <div class="row">
@@ -17,11 +46,6 @@
             :items="treeData"
             v-model="selectedIds"
           />
-          <br>
-          <button
-            class="btn btn-success"
-            @click="addTag"
-          >+</button>
 
         </div>
         <div class="col-9" v-if="selectedTag">
@@ -43,22 +67,17 @@
               </label>
             </div>
             <select v-model="selectedTag.parent" class="form-control" id="tagEditor-tag-parent">
-              <option :value="null">(Root tag)</option>
+              <option :value="null">(Root)</option>
               <option
                 v-for="{tag, depth, disabled} in parentOptions"
                 :key="tag.id"
                 :value="tag.id"
                 :disabled="disabled"
-                v-html="'&nbsp;'.repeat(depth*5) + tag.text"
+                v-html="'&nbsp;'.repeat(4+depth*4) + tag.text"
               >
               </option>
             </select>
           </div>
-
-          <button
-            class="btn btn-danger mt-5"
-            @click="deleteTag(selectedTag.id)"
-          >Remove</button>
 
         </div>
       </div>
@@ -157,8 +176,13 @@ export default {
       this.selectedIds = tagId == null ? [] : [tagId];
     },
 
+    onCancel() {
+      this.$refs.modal.hide()
+    },
+
     onSave() {
       this.$store.dispatch("saveTags", Object.values(this.tags));
+      this.$refs.modal.hide()
     },
 
     addTag() {

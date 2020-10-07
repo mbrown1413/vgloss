@@ -85,26 +85,29 @@ export default {
         }
       }
 
-      // Sort children alphanumerically by text
+      function sortFunc(a, b) {
+        // Case insensitive sort
+        //TODO: Sort alphanumerically
+        a = a.text.toUpperCase();
+        b = b.text.toUpperCase();
+        if (a < b) {
+          return -1;
+        } else if(a > b) {
+          return 1;
+        } else {
+          return 0;
+        }
+      }
+
+      // Sort children by text
       for(var node of Object.values(nodesById)) {
-        node.children.sort((a, b) => {
-          a = a.text.toUpperCase();
-          b = b.text.toUpperCase();
-          if (a < b) {
-            return -1;
-          } else if(a > b) {
-            return 1;
-          } else {
-            return 0;
-          }
-        });
+        node.children.sort(sortFunc);
       }
 
       // Return root nodes (ones without parents)
-      //TODO: Sort this alphabetically too
       return Object.values(nodesById).filter((node) =>
         node.value.parent === null || node.value.parent === undefined
-      );
+      ).sort(sortFunc);
     },
 
   },
@@ -137,7 +140,7 @@ export default {
           item: stackItem.node.value,
           depth: stackItem.depth,
         };
-        for(var child of stackItem.node.children) {
+        for(var child of stackItem.node.children.slice().reverse()) {
           stack.push({node: child, depth: stackItem.depth+1});
         }
       }
