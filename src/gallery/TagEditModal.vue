@@ -172,7 +172,7 @@ export default {
       this.$set(this.tags, newId, {
         id: newId,
         name: "New Tag "+this.tempCounter,
-        parent: null,
+        parent: this.selectedTag === null ? null : this.selectedTag.parent,
       });
       this.select(newId);
     },
