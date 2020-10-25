@@ -91,6 +91,7 @@
 
 <script>
 import { BModal } from "bootstrap-vue/esm/components/modal/modal";
+
 import Tree from '../Tree.vue';
 
 /* TagEditModal

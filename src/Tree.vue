@@ -4,6 +4,7 @@
     :checkbox="multiSelect"
     @toggle="onToggle"
     @change="onChange"
+    style="user-select: none;"
   />
 </template>
 

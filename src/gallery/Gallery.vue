@@ -15,6 +15,7 @@
       </h4>
       <Tree
         :items="tagItems"
+        :multiSelect="true"
         v-model="selectedTags"
       />
     </div>
@@ -27,6 +28,25 @@
           /
         </template>
       </span>
+      <div class="dropdown">
+        <button
+          class="btn btn-secondary dropdown-toggle"
+          type="button"
+          id="dropdownMenuButton"
+          data-toggle="dropdown"
+          aria-haspopup="true"
+          aria-expanded="false"
+        >
+          Apply Tags
+        </button>
+        <div
+          class="dropdown-menu"
+          aria-labelledby="dropdownMenuButton"
+          @click="$event.stopPropagation()"
+        >
+          <Tree :items="tagItems" :multiSelect="true" v-model="selectedItemTags" />
+        </div>
+      </div>
     </div>
 
     <GalleryGrid
@@ -97,6 +117,8 @@ import FileDetailModal from './FileDetailModal.vue';
 import TagEditModal from './TagEditModal.vue';
 import * as urls from '../urls.js';
 
+import 'bootstrap/js/dist/dropdown';
+
 /* Gallery URLs
  * All data that determines which items are shown will be present in the URL.
  * This ensures the current location can always be bookmarked. This data is
@@ -116,8 +138,10 @@ export default {
       files: [],
       selectedItems: [],
       selectedTags: [],
+      selectedItemTags: [],
       modalItem: null,
       modalDetails: null,
+      bsHideEventName: "hide.bs.dropdown",
     };
   },
   mounted() {
