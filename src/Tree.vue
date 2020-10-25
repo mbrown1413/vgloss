@@ -1,6 +1,7 @@
 <template>
   <VueTree
     :data="treeComponentData"
+    :checkbox="multiSelect"
     @toggle="onToggle"
     @change="onChange"
   />
@@ -38,7 +39,7 @@ export default {
     items: {required: true, type: Array},
 
     // If true, show checkboxes to allow multiple items to be selected.
-    //multiSelect: {required: false, type: Boolean, default: false},
+    multiSelect: {required: false, type: Boolean, default: false},
 
     // Optional: List of selected item IDs
     selectedIds: {required: false, type: Array, default: () => []},
@@ -123,7 +124,56 @@ export default {
     },
 
     openToggle(nodeId) {
-        this.open(nodeId, true);
+      this.open(nodeId, true);
+    },
+
+    select(nodeId, toggle=false) {
+      var selectedSet = new Set(this.selectedIds);
+      if(toggle && selectedSet.has(nodeId)) {
+        this.unselect(nodeId);
+        return;
+      }
+
+      if(!this.multiSelect) {
+        selectedSet = [nodeId];
+      } else {
+        selectedSet.add(nodeId);
+
+        // Add all descendants to selection
+        for(var descendant of this.getDescendantItems(nodeId)) {
+          selectedSet.add(descendant.id);
+        }
+        // Select ancestors if all their children are selected
+        var ancestorNodes = Array.from(this.getNodePath(nodeId));
+        for(var node of ancestorNodes.reverse().slice(1)) {
+          if(node.children.every(child => selectedSet.has(child.value.id))) {
+            selectedSet.add(node.value.id);
+          }
+        }
+
+      }
+      this.$emit("change-selected", Array.from(selectedSet));
+    },
+
+    unselect(nodeId) {
+      var selectedSet = new Set(this.selectedIds);
+      selectedSet.delete(nodeId);
+      if(this.multiSelect) {
+        // Remove all descendants from selection
+        for(var descendant of this.getDescendantItems(nodeId)) {
+          selectedSet.delete(descendant.id);
+        }
+
+        // Remove ancestors from selection
+        for(var ancestor of this.getItemPath(nodeId)) {
+          selectedSet.delete(ancestor.id);
+        }
+      }
+      this.$emit("change-selected", Array.from(selectedSet));
+    },
+
+    selectToggle(nodeId) {
+      this.select(nodeId, true);
     },
 
     /* Tree helpers */
@@ -146,7 +196,7 @@ export default {
       }
     },
 
-    /* List of the IDs of the given item's childen, their children, etc. */
+    /* Items that are children of the given item, their children, etc. */
     getDescendantItems: function*(itemId) {
       // Start list with given Id and expand to children until an iteration
       // adds no more descendants.
@@ -165,21 +215,28 @@ export default {
       } while(frontier.length > 0);
     },
 
-    /* List of items leading to the given ID starting at the root */
-    getItemPath: function*(itemId) {
+    /* List of nodes leading to the given ID starting at the root */
+    getNodePath: function*(itemId) {
       var path = this.pathById[itemId];
       if(path === undefined) {
         return [];
       }
       for(var id of path) {
-        yield this.nodesById[id].value;
+        yield this.nodesById[id];
+      }
+    },
+
+    /* List of items leading to the given ID starting at the root */
+    getItemPath: function*(itemId) {
+      for(var node of this.getNodePath(itemId)) {
+        yield node.value;
       }
     },
 
     /* Event Handlers */
 
     onChange(event) {
-      this.$emit("change-selected", [event.data.value.id]);
+      this.selectToggle(event.data.value.id);
       this.open(event.data.value.path);
     },
 
