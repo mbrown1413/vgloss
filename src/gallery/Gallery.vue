@@ -16,7 +16,8 @@
       <Tree
         :items="tagItems"
         :multiSelect="true"
-        v-model="selectedTags"
+        :autoSelectRelated="true"
+        v-model="filteringTags"
       />
     </div>
 
@@ -31,6 +32,7 @@
       <div class="dropdown">
         <button
           class="btn btn-secondary dropdown-toggle"
+          :disabled="selectedItems.length == 0"
           type="button"
           id="dropdownMenuButton"
           data-toggle="dropdown"
@@ -44,7 +46,12 @@
           aria-labelledby="dropdownMenuButton"
           @click="$event.stopPropagation()"
         >
-          <Tree :items="tagItems" :multiSelect="true" v-model="selectedItemTags" />
+          <Tree
+            :items="tagItems"
+            :multiSelect="true"
+            :selectedIds="selectedItemTags"
+            @change-selected="onFileTagChange"
+          />
         </div>
       </div>
     </div>
@@ -115,6 +122,7 @@ import GalleryGrid from './GalleryGrid.vue';
 import Tree from '../Tree.vue';
 import FileDetailModal from './FileDetailModal.vue';
 import TagEditModal from './TagEditModal.vue';
+import * as store from '../store.js';
 import * as urls from '../urls.js';
 
 import 'bootstrap/js/dist/dropdown';
@@ -136,9 +144,8 @@ export default {
   data() {
     return {
       files: [],
+      filteringTags: [],
       selectedItems: [],
-      selectedTags: [],
-      selectedItemTags: [],
       modalItem: null,
       modalDetails: null,
       bsHideEventName: "hide.bs.dropdown",
@@ -148,6 +155,14 @@ export default {
     this.$store.dispatch("galleryRequest");
   },
   computed: {
+
+    filesByName() {
+      var filesByName = {};
+      for(var file of this.files) {
+        filesByName[file.name] = file;
+      }
+      return filesByName;
+    },
 
     folderItems() {
       var items = [{
@@ -215,6 +230,34 @@ export default {
       return items;
     },
 
+    selectedItemTags() {
+      // Update current file tags based on the selected files.
+      // For now, we only consider our selection to have at tag if every item
+      // in the selection has the tag.
+      var selected = new Set();
+
+      // Two pass algorithm
+      // 1) add tags from all selected files
+      for(var item of this.selectedItems) {
+        var itemTags = this.filesByName[item] ? this.filesByName[item].tags : [];
+        for(var tag of itemTags) {
+          selected.add(tag);
+        }
+      }
+
+      // 2) remove tags not in selected files
+      for(item of this.selectedItems) {
+        itemTags = this.filesByName[item] ? this.filesByName[item].tags : [];
+        for(tag of selected) {
+          if(!itemTags.includes(tag)) {
+            selected.delete(tag);
+          }
+        }
+      }
+
+      return [...selected];
+    },
+
   },
   watch: {
 
@@ -267,6 +310,77 @@ export default {
           this.$refs.fileDetailModal.show(this.gridItems[nextIndex]);
         }
       }
+    },
+
+    onFileTagChange(newSelectedTags) {
+      var oldSelectedTags = this.selectedItemTags;
+
+      var newSet = new Set(newSelectedTags);
+      var oldSet = new Set(oldSelectedTags);
+      var addedTags   = newSelectedTags.filter(t => !oldSet.has(t));
+      var deletedTags = oldSelectedTags.filter(t => !newSet.has(t));
+
+      this.addFileTags(this.selectedItems, addedTags);
+      this.deleteFileTags(this.selectedItems, deletedTags);
+    },
+
+    addFileTags(itemNames, tagIds) {
+      this._editFileTags(itemNames, tagIds, true);
+    },
+
+    deleteFileTags(itemNames, tagIds) {
+      this._editFileTags(itemNames, tagIds, false);
+    },
+
+    _editFileTags(itemNames, tagIds, _add) {
+      var data = [];
+
+      // Frontend edit
+      for(var tagId of tagIds) {
+        for(var name of itemNames) {
+          var fileInfo = this.filesByName[name];
+          if(!fileInfo) continue
+
+          var neededEdit = false;
+          if(_add && !fileInfo.tags.includes(tagId)) {
+            fileInfo.tags.push(tagId);
+            neededEdit = true;
+          } else if(!_add && fileInfo.tags.includes(tagId)) {
+            fileInfo.tags.splice(fileInfo.tags.indexOf(tagId), 1);
+            neededEdit = true;
+          }
+
+          if(neededEdit) {
+            data.push({file: fileInfo.hash, tag: tagId});
+          }
+        }
+      }
+
+      if(data.length === 0) {
+        return;
+      }
+
+      // Backend edit request
+      var xhr = new XMLHttpRequest();
+      xhr.addEventListener("load", () => {
+        if(![200, 204].includes(xhr.status)) {
+          //TODO: Error handling
+          // Undo on the frontend the edit that failed on the backend
+          for(var dataItem of data) {
+            fileInfo = this.files.find(f => f.hash === dataItem.file);
+            if(_add) {
+              fileInfo.tags.splice(fileInfo.tags.indexOf(data.tag), 1);
+            } else {
+              fileInfo.tags.push(data.tag);
+            }
+          }
+        }
+      });
+      xhr.open(_add ? "POST" : "DELETE", urls.fileTags);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader("Accept", "application/json");
+      xhr.setRequestHeader("X-CSRFToken", store.getCookie("csrftoken"));
+      xhr.send(JSON.stringify(data));
     },
 
   },

@@ -42,6 +42,15 @@ export default {
     // If true, show checkboxes to allow multiple items to be selected.
     multiSelect: {required: false, type: Boolean, default: false},
 
+    // Selects and deselects related items assuming a parent is a strict
+    // superset of its children. Namely:
+    //   * Selecting an item will also select its children.
+    //   * Selecting all of an item's children will select that item.
+    //   * Deselecting an item will deselect all its children.
+    //   * Deselecting all of an item's children will deselect that item.
+    // Has no effect if multiSelect is false.
+    autoSelectRelated: {required: false, type: Boolean, default: false},
+
     // Optional: List of selected item IDs
     selectedIds: {required: false, type: Array, default: () => []},
   },
@@ -140,15 +149,17 @@ export default {
       } else {
         selectedSet.add(nodeId);
 
-        // Add all descendants to selection
-        for(var descendant of this.getDescendantItems(nodeId)) {
-          selectedSet.add(descendant.id);
-        }
-        // Select ancestors if all their children are selected
-        var ancestorNodes = Array.from(this.getNodePath(nodeId));
-        for(var node of ancestorNodes.reverse().slice(1)) {
-          if(node.children.every(child => selectedSet.has(child.value.id))) {
-            selectedSet.add(node.value.id);
+        if(this.autoSelectRelated) {
+          // Add all descendants to selection
+          for(var descendant of this.getDescendantItems(nodeId)) {
+            selectedSet.add(descendant.id);
+          }
+          // Select ancestors if all their children are selected
+          var ancestorNodes = Array.from(this.getNodePath(nodeId));
+          for(var node of ancestorNodes.reverse().slice(1)) {
+            if(node.children.every(child => selectedSet.has(child.value.id))) {
+              selectedSet.add(node.value.id);
+            }
           }
         }
 
@@ -159,7 +170,7 @@ export default {
     unselect(nodeId) {
       var selectedSet = new Set(this.selectedIds);
       selectedSet.delete(nodeId);
-      if(this.multiSelect) {
+      if(this.multiSelect && this.autoSelectRelated) {
         // Remove all descendants from selection
         for(var descendant of this.getDescendantItems(nodeId)) {
           selectedSet.delete(descendant.id);
