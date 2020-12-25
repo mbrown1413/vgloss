@@ -201,6 +201,7 @@ export default {
     queryParams() {
       return {
         folder: this.selectedFolder,
+        tag: this.filteringTags.join(","),
       };
     },
 

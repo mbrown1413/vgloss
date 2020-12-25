@@ -6,6 +6,7 @@ from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.generics import GenericAPIView
+import rest_framework.serializers
 
 from . import models, serializers
 
@@ -46,9 +47,19 @@ class FileListApi(APIView):
             qs = qs.filter(paths__in=paths).distinct()
 
         # Filter by tag
-        tag_filter = self.request.GET.get("tag")
-        if tag_filter is not None:
-            raise NotImplementedError
+        tag_str = request.GET.get("tag", "")
+        try:
+            tag_include = [
+                int(t)
+                for t in tag_str.split(",")
+                if t
+            ]
+        except ValueError as e:
+            raise rest_framework.serializers.ValidationError(
+                {"tags": "Tag IDs should be integers"}
+            ) from e
+        if tag_include:
+            qs = qs.filter(tags__in=tag_include)
 
         file_serializer = serializers.FileSerializer(qs, many=True)
         return Response(file_serializer.data)

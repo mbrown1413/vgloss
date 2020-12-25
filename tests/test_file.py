@@ -58,14 +58,16 @@ class TestScan(TestCase):
                 {"black_square1.jpg"}
             )
 
-    @unittest.skip("Test not implemented")
     def test_file_list_filtered(self):
-
-        # Filter files by tag
         response = self.client.get(self.url+"?tag="+str(self.tag_white.id))
         self.assertEqual(response.status_code, 200)
-        raise NotImplementedError
+        self.assertSetEqual(
+            set(f["name"] for f in response.data),
+            {"white_square.jpg"}
+        )
 
+    @unittest.skip("Test not implemented")
+    def test_file_list_filter_dir_and_tag(self):
         # List files by both tag and folder
         raise NotImplementedError
 
