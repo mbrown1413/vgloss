@@ -4,8 +4,20 @@ from django.db.transaction import atomic
 from rest_framework import serializers
 from rest_framework.exceptions import NotFound
 
-from vgloss import models
+from vgloss import models, actions
 
+
+class ActionSerializer(serializers.Serializer):
+
+    def to_internal_value(self, data):
+        class_name = data.get("type")
+        if not class_name:
+            raise serializers.ValidationError("Action type is required")
+        try:
+            cls = actions.ACTION_CLASSES[class_name]
+        except KeyError as e:
+            raise serializers.ValidationError("Invalid action type given") from e
+        return cls(**data["data"])
 
 class FileSerializer(serializers.ModelSerializer):
     tags = serializers.ReadOnlyField(source="tag_ids")
@@ -41,7 +53,7 @@ class TagListSerializer(serializers.ListSerializer):
 
         return super().to_internal_value(data)
 
-    def save(self):
+    def save(self, delete_unseen=False, ignore_not_found=False):
         with atomic():
             tag_ids = [t.get("id") for t in self.validated_data]
             tags_qs = models.Tag.objects.filter(id__in=tag_ids)
@@ -56,7 +68,10 @@ class TagListSerializer(serializers.ListSerializer):
                 else:
                     tag = tag_map.get(tag_id)
                     if tag is None:
-                        raise NotFound(f'ID {tag_id} not found', 404)
+                        if not ignore_not_found:
+                            raise NotFound(f'ID {tag_id} not found', 404)
+                        else:
+                            continue
                 if tag is None:
                     tag = self.child.create(tag_data)
                 else:
@@ -83,6 +98,14 @@ class TagListSerializer(serializers.ListSerializer):
                 if isinstance(temp_parent_id, str):
                     tag.parent_id = temp_id_map[temp_parent_id]
                     tag.save()
+
+            # Delete unseen tags
+            # Do this last, since we want to be sure the delete cascades to
+            # everything needed.
+            if delete_unseen:
+                saved_tag_ids = [t.id for t in saved_tags]
+                unseen_tags = models.Tag.objects.exclude(id__in=saved_tag_ids)
+                unseen_tags.delete()
 
     def delete(self):
         with atomic():

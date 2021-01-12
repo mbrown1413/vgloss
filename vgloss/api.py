@@ -1,6 +1,8 @@
 import os
+from typing import List
 
 from django.conf import settings
+from django.db.transaction import atomic
 
 from rest_framework import generics, status
 from rest_framework.views import APIView
@@ -19,6 +21,31 @@ def get_folders(path):
             yield entry.name
             for subfolder in get_folders(entry.path):
                 yield entry.name + "/" + subfolder
+
+class Action(GenericAPIView):
+    """Perform one or more actions."""
+    serializer_class = serializers.ActionSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data, many=True)
+        serializer.is_valid(raise_exception=True)
+        actions = serializer.validated_data
+
+        # Do actions
+        ret: List[dict] = []
+        with atomic():
+            for action in actions:
+                extra_actions = action.do() or []
+                ret.append({
+                    "extraActions": list(map(
+                        lambda action: action.serialize(),
+                        extra_actions
+                    )),
+                    "status": "completed",
+                })
+
+        return Response(ret)
+
 
 class GalleryApi(APIView):
     """Retrieve global information needed to show the gallery."""
