@@ -11,12 +11,12 @@
     <template v-slot:modal-footer>
       <div style="position: absolute; left: 0;">
         <button
-          class="btn btn-danger ml-3 float-right"
+          class="float-right ml-3 btn btn-danger"
           @click="deleteTag(selectedTag.id)"
           :disabled="selectedTag == null"
         >-</button>
         <button
-          class="btn btn-success ml-5 float-right"
+          class="float-right ml-5 btn btn-success"
           @click="addTag"
         >+</button>
       </div>
@@ -51,7 +51,7 @@
         <div class="col-9" v-if="selectedTag">
 
           <h5>{{ selectedTagPath.map(tag => tag.text).join(" &rarr; ") }}</h5>
-          <div class="input-group mt-3">
+          <div class="mt-3 input-group">
             <div class="input-group-prepend">
               <label class="input-group-text" for="tagEditor-tag-name">
                 Name
@@ -60,7 +60,7 @@
             <input v-model="selectedTag.name" class="form-control" id="tagEditor-tag-name">
           </div>
 
-          <div class="input-group mt-3">
+          <div class="mt-3 input-group">
             <div class="input-group-prepend">
               <label class="input-group-text" for="tagEditor-tag-parent">
                 Parent
@@ -92,7 +92,9 @@
 <script>
 import { BModal } from "bootstrap-vue/esm/components/modal/modal";
 
-import Tree from '../Tree.vue';
+import Tree from "../Tree.vue";
+import { doAction } from "../state"
+import * as actions from "../actions"
 
 /* TagEditModal
  * Edit tree of tags.
@@ -182,7 +184,9 @@ export default {
     },
 
     onSave() {
-      this.$store.dispatch("saveTags", Object.values(this.tags));
+      doAction(new actions.TagUpdate(
+        Object.values(this.tags)
+      ))
       this.$refs.modal.hide()
     },
 

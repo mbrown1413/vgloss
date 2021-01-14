@@ -41,12 +41,11 @@ export function folderListFromPath(path) {
 export const apiGallery = "/api/gallery";
 
 export function apiFileList(params={}) {
-  var paramString = "";
-  for(var param in params) {
-    if(params[param] !== null) {
-      paramString += `${param}=${encodeURIComponent(params[param])}`;
-    }
-  }
+  var paramString = Object.keys(params).filter(
+    (param) => params[param] !== null
+  ).map(
+    (param) => `${param}=${encodeURIComponent(params[param])}`
+  ).join("&");
   return "/api/file/?"+paramString;
 }
 
@@ -63,3 +62,7 @@ export function fileThumbnail(fileHash) {
 }
 
 export const updateTags = "/api/tag/";
+
+export const fileTags = "/api/filetag/";
+
+export const action = "/api/action";

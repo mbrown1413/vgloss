@@ -124,6 +124,7 @@ import FileDetailModal from './FileDetailModal.vue';
 import TagEditModal from './TagEditModal.vue';
 import * as store from '../store.js';
 import * as urls from '../urls.js';
+import { globalState } from "../state";
 
 import 'bootstrap/js/dist/dropdown';
 
@@ -188,7 +189,7 @@ export default {
 
     tagItems() {
       var items = [];
-      for(var tag of this.$store.state.tags) {
+      for(var tag of globalState.tags) {
         items.push({
           id: tag.id,
           text: tag.name,

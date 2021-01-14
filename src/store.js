@@ -2,6 +2,7 @@ import Vue from 'vue'
 import Vuex from 'vuex'
 
 import * as urls from './urls.js';
+import { globalState } from "./state";
 
 Vue.use(Vuex)
 
@@ -34,7 +35,6 @@ export default new Vuex.Store({
     updateTags(state, newTags) {
       state.tags = newTags;
     },
-
   },
 
   actions: {
@@ -46,6 +46,7 @@ export default new Vuex.Store({
           var data = JSON.parse(xhr.response);
           commit("updateFolders", data.folders);
           commit("updateTags", data.tags);
+          globalState.tags = data.tags;
         } else {
           //TODO: Error handling
         }
