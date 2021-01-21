@@ -6,7 +6,7 @@ from functools import lru_cache
 from django.conf import settings
 from django.views.generic import View
 from django.http import HttpResponse, Http404
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 
 from . import models
 
@@ -38,9 +38,7 @@ class DistFile(View):
 
         # Fallback to serving index.html
         if self.fall_back_to_index and not content:
-            content, content_type, encoding = read_dist_file("index.html")
-            if not content:
-                raise ValueError("Compiled javascript not found. Please run `yarn build`")
+            return render(request, "vgloss/vue-single-page.html")
 
         #TODO: This view should do some things that django.views.static.serve
         #      does. Namely:

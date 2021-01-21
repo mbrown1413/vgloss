@@ -1,6 +1,8 @@
+/vgloss/dist
+/vgloss/templates/vgloss/vue-single-page.html
+
 .DS_Store
 node_modules
-/vgloss/dist
 vgloss.egg-info/
 .coverage
 
