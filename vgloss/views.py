@@ -9,6 +9,7 @@ from django.http import HttpResponse, Http404
 from django.shortcuts import get_object_or_404, render
 
 from . import models
+from .api import initial_pageload_data
 
 
 DIST_DIR = os.path.join(settings.VGLOSS_CODE_DIR, "dist")
@@ -38,7 +39,13 @@ class DistFile(View):
 
         # Fallback to serving index.html
         if self.fall_back_to_index and not content:
-            return render(request, "vgloss/vue-single-page.html")
+            return render(
+                request,
+                "vgloss/vue-single-page.html",
+                context={
+                    "metadata": initial_pageload_data(),
+                },
+            )
 
         #TODO: This view should do some things that django.views.static.serve
         #      does. Namely:

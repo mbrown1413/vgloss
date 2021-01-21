@@ -22,6 +22,17 @@ def get_folders(path):
             for subfolder in get_folders(entry.path):
                 yield entry.name + "/" + subfolder
 
+def initial_pageload_data():
+    """Return data needed on initial pageload."""
+    tag_serializer = serializers.TagSerializer(
+        models.Tag.objects.all(),
+        many=True,
+    )
+    return dict(
+        folders=list(get_folders(settings.BASE_DIR)),
+        tags=tag_serializer.data,
+    )
+
 class Action(GenericAPIView):
     """Perform one or more actions."""
     serializer_class = serializers.ActionSerializer
@@ -49,16 +60,12 @@ class Action(GenericAPIView):
 
 class GalleryApi(APIView):
     """Retrieve global information needed to show the gallery."""
+    #TODO: This may be replaced in the future but for now it's unused. This
+    #      data is passed in Django templates, and currently nothing updates
+    #      this metadata outside of the initial request.
 
     def get(self, request, *args, **kwargs):
-        tag_serializer = serializers.TagSerializer(
-            models.Tag.objects.all(),
-            many=True,
-        )
-        return Response(dict(
-            folders=list(get_folders(settings.BASE_DIR)),
-            tags=tag_serializer.data,
-        ))
+        return Response(initial_pageload_data())
 
 
 class FileListApi(APIView):

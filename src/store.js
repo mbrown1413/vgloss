@@ -40,6 +40,12 @@ export default new Vuex.Store({
   actions: {
 
     galleryRequest({commit}) {
+      const metadata = JSON.parse(document.getElementById("gallery-metadata").textContent);
+      commit("updateFolders", metadata.folders);
+      commit("updateTags", metadata.tags);
+      globalState.tags = metadata.tags;
+
+      /*
       var xhr = new XMLHttpRequest();
       xhr.addEventListener("load", () => {
         if(xhr.status == 200) {
@@ -54,6 +60,7 @@ export default new Vuex.Store({
       xhr.open("GET", urls.apiGallery);
       xhr.setRequestHeader("Accept", "application/json");
       xhr.send();
+      */
     },
 
     saveTags({commit}, newTags) {
