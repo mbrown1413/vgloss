@@ -92,6 +92,7 @@
 <script>
 import { BModal } from "bootstrap-vue/esm/components/modal/modal";
 
+import { globalState } from "../state";
 import Tree from "../Tree.vue";
 import { doAction } from "../state"
 import * as actions from "../actions"
@@ -164,7 +165,7 @@ export default {
 
     show() {
       // Convert tag list to mapping from tag ID
-      var tagList = JSON.parse(JSON.stringify(this.$store.state.tags));
+      var tagList = JSON.parse(JSON.stringify(globalState.tags));
       this.tags = {};
       for(var tag of tagList) {
         this.$set(this.tags, tag.id, tag);

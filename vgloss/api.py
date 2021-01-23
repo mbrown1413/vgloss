@@ -1,7 +1,5 @@
-import os
 from typing import List
 
-from django.conf import settings
 from django.db.transaction import atomic
 
 from rest_framework import generics, status
@@ -12,26 +10,6 @@ import rest_framework.serializers
 
 from . import models, serializers
 
-
-def get_folders(path):
-    for entry in os.scandir(path):
-        if entry.name == ".vgloss":
-            continue
-        elif entry.is_dir() and not entry.is_symlink():
-            yield entry.name
-            for subfolder in get_folders(entry.path):
-                yield entry.name + "/" + subfolder
-
-def initial_pageload_data():
-    """Return data needed on initial pageload."""
-    tag_serializer = serializers.TagSerializer(
-        models.Tag.objects.all(),
-        many=True,
-    )
-    return dict(
-        folders=list(get_folders(settings.BASE_DIR)),
-        tags=tag_serializer.data,
-    )
 
 class Action(GenericAPIView):
     """Perform one or more actions."""
@@ -56,16 +34,6 @@ class Action(GenericAPIView):
                 })
 
         return Response(ret)
-
-
-class GalleryApi(APIView):
-    """Retrieve global information needed to show the gallery."""
-    #TODO: This may be replaced in the future but for now it's unused. This
-    #      data is passed in Django templates, and currently nothing updates
-    #      this metadata outside of the initial request.
-
-    def get(self, request, *args, **kwargs):
-        return Response(initial_pageload_data())
 
 
 class FileListApi(APIView):

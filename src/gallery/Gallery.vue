@@ -122,9 +122,9 @@ import GalleryGrid from './GalleryGrid.vue';
 import Tree from '../Tree.vue';
 import FileDetailModal from './FileDetailModal.vue';
 import TagEditModal from './TagEditModal.vue';
-import * as store from '../store.js';
+import { getCookie } from "../utils.js";
 import * as urls from '../urls.js';
-import { globalState } from "../state";
+import { globalState, listFolders } from "../state";
 
 import 'bootstrap/js/dist/dropdown';
 
@@ -149,11 +149,7 @@ export default {
       selectedItems: [],
       modalItem: null,
       modalDetails: null,
-      bsHideEventName: "hide.bs.dropdown",
     };
-  },
-  mounted() {
-    this.$store.dispatch("galleryRequest");
   },
   computed: {
 
@@ -171,7 +167,7 @@ export default {
         text: "Root",
         parent: null,
       }];
-      for(var path of this.$store.state.folders) {
+      for(var path of globalState.folders) {
         var lastSlashIdx = path.lastIndexOf("/");
         items.push({
           id: path,
@@ -214,7 +210,7 @@ export default {
       var items = [];
 
       // Folders
-      for(var folder of this.$store.getters.listFolders(this.selectedFolder)) {
+      for(var folder of listFolders(this.selectedFolder)) {
         items.push({
           type: "folder",
           name: folder,
@@ -381,7 +377,7 @@ export default {
       xhr.open(_add ? "POST" : "DELETE", urls.fileTags);
       xhr.setRequestHeader('Content-Type', 'application/json');
       xhr.setRequestHeader("Accept", "application/json");
-      xhr.setRequestHeader("X-CSRFToken", store.getCookie("csrftoken"));
+      xhr.setRequestHeader("X-CSRFToken", getCookie("csrftoken"));
       xhr.send(JSON.stringify(data));
     },
 

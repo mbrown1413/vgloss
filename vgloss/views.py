@@ -8,11 +8,31 @@ from django.views.generic import View
 from django.http import HttpResponse, Http404
 from django.shortcuts import get_object_or_404, render
 
-from . import models
-from .api import initial_pageload_data
+from . import models, serializers
 
 
 DIST_DIR = os.path.join(settings.VGLOSS_CODE_DIR, "dist")
+
+
+def get_folders(path):
+    for entry in os.scandir(path):
+        if entry.name == ".vgloss":
+            continue
+        elif entry.is_dir() and not entry.is_symlink():
+            yield entry.name
+            for subfolder in get_folders(entry.path):
+                yield entry.name + "/" + subfolder
+
+def initial_pageload_data():
+    """Return data needed on initial pageload."""
+    tag_serializer = serializers.TagSerializer(
+        models.Tag.objects.all(),
+        many=True,
+    )
+    return dict(
+        folders=list(get_folders(settings.BASE_DIR)),
+        tags=tag_serializer.data,
+    )
 
 @lru_cache()
 def read_dist_file(path):

@@ -22,7 +22,6 @@ from . import views, api
 urlpatterns = [
     # APIs
     path("api/action", api.Action.as_view(), name="api-action"),
-    path("api/gallery", api.GalleryApi.as_view(), name="api-gallery"),
     path("api/file/", api.FileListApi.as_view(), name="api-files"),
     path("api/file/<str:hash>", api.FileDetailApi.as_view(), name="api-file"),
     path("api/filetag/", api.FileTagsApi.as_view(), name="api-file-tags"),
