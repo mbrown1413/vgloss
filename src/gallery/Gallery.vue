@@ -4,7 +4,7 @@
     <div class="gallery-filter-pane">
       <h4 style="margin-left: 0.25em">Folders</h4>
       <Tree
-        :items="folderItems"
+        :items="folderTreeItems"
         :selectedIds="[selectedFolder]"
         @change-selected="onFolderSelect"
       />
@@ -14,7 +14,7 @@
         Tags <small>(<a href="#" @click.prevent="$refs.tagEditModal.show()">edit</a>)</small>
       </h4>
       <Tree
-        :items="tagItems"
+        :items="tagTreeItems"
         :multiSelect="true"
         :autoSelectRelated="true"
         v-model="filteringTags"
@@ -47,7 +47,7 @@
           @click="$event.stopPropagation()"
         >
           <Tree
-            :items="tagItems"
+            :items="tagTreeItems"
             :multiSelect="true"
             :selectedIds="selectedItemTags"
             @change-selected="onFileTagChange"
@@ -122,8 +122,9 @@ import GalleryGrid from './GalleryGrid.vue';
 import Tree from '../Tree.vue';
 import FileDetailModal from './FileDetailModal.vue';
 import TagEditModal from './TagEditModal.vue';
-import { getCookie } from "../utils.js";
+import { getCookie, ApiRequester } from "../utils.js";
 import * as urls from '../urls.js';
+import { queryFileList } from "../state/files.js";
 import { globalState, listFolders } from "../state";
 
 import 'bootstrap/js/dist/dropdown';
@@ -144,7 +145,9 @@ export default {
   },
   data() {
     return {
+      filesRequester: new ApiRequester(queryFileList),
       files: [],
+      folders: [],
       filteringTags: [],
       selectedItems: [],
       modalItem: null,
@@ -161,7 +164,7 @@ export default {
       return filesByName;
     },
 
-    folderItems() {
+    folderTreeItems() {
       var items = [{
         id: "",
         text: "Root",
@@ -183,7 +186,7 @@ export default {
       return folder || "";
     },
 
-    tagItems() {
+    tagTreeItems() {
       var items = [];
       for(var tag of globalState.tags) {
         items.push({
@@ -195,7 +198,7 @@ export default {
       return items;
     },
 
-    queryParams() {
+    fileListParams() {
       return {
         folder: this.selectedFolder,
         tag: this.filteringTags.join(","),
@@ -210,7 +213,7 @@ export default {
       var items = [];
 
       // Folders
-      for(var folder of listFolders(this.selectedFolder)) {
+      for(var folder of this.folders) {
         items.push({
           type: "folder",
           name: folder,
@@ -259,21 +262,13 @@ export default {
   },
   watch: {
 
-    queryParams: {
-      handler(queryParams) {
-        // Make API request
-        var request = new XMLHttpRequest();
-        request.addEventListener("load", (event) => {
-          var xhr = event.target;
-          if(xhr.status == 200) {
-            this.files = JSON.parse(xhr.response);
-          } else {
-            //TODO: Error Handling
-          }
+    fileListParams: {
+      handler(fileListParams) {
+        this.files = [];
+        this.filesRequester.request(fileListParams).then((files) => {
+          this.files = files;
+          this.folders = listFolders(this.selectedFolder)
         });
-        request.open("GET", urls.apiFileList(queryParams));
-        request.setRequestHeader("Accept", "application/json");
-        request.send();
       },
       immediate: true,
       deep: true,

@@ -4,6 +4,15 @@ function trimSlashes(str) {
   return str.replace(/^\/+|\/+$/g, '').replace(/\/+/g, '/');
 }
 
+function appendGetParams(url, params) {
+  var paramString = Object.keys(params).filter(
+    (param) => params[param] !== null
+  ).map(
+    (param) => `${param}=${encodeURIComponent(params[param])}`
+  ).join("&");
+  return "/api/file/?"+paramString;
+}
+
 
 /********* Frontend *********/
 
@@ -38,15 +47,9 @@ export function folderListFromPath(path) {
 
 /********* Backend *********/
 
-export const apiGallery = "/api/gallery";
-
-export function apiFileList(params={}) {
-  var paramString = Object.keys(params).filter(
-    (param) => params[param] !== null
-  ).map(
-    (param) => `${param}=${encodeURIComponent(params[param])}`
-  ).join("&");
-  return "/api/file/?"+paramString;
+export function apiFileList(params) {
+  //XXX Convert params to string, check there are no extras
+  return appendGetParams("/api/file/", params);
 }
 
 export function apiFileDetail(fileHash) {
@@ -60,8 +63,6 @@ export function fileRaw(fileHash) {
 export function fileThumbnail(fileHash) {
   return "/file/"+fileHash+"/thumbnail";
 }
-
-export const updateTags = "/api/tag/";
 
 export const fileTags = "/api/filetag/";
 

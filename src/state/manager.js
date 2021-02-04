@@ -2,7 +2,7 @@ import cloneDeep from "lodash.clonedeep";
 import debounce from "lodash.debounce";
 
 import * as urls from '../urls.js';
-import { getCookie } from "../utils.js";
+import { apiRequest } from "../utils.js";
 
 
 /* StateManager
@@ -64,27 +64,20 @@ export default class StateManager {
       return;
     }
 
-    // Make request
-    var xhr = new XMLHttpRequest();
-    xhr.addEventListener("load", () => {
-      if(xhr.status != 200) {
-        //TODO: Error handling
-        return;
-      }
-      // Detect if there are new pending actions
-      this.maybeDelayedCommit();
-    })
-    xhr.open("POST", urls.action);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader("Accept", "application/json");
-    xhr.setRequestHeader("X-CSRFToken", getCookie("csrftoken"));
-    xhr.send(JSON.stringify(
-      this.actions.pending.map(a => a.serialize())
-    ));
-
     // Move actions to pending
     this.actions.inFlight = this.actions.pending;
     this.actions.pending = [];
+
+    // Send request to perform actions on backend
+    let data = this.actions.inFlight.map(a => a.serialize());
+    try {
+      await apiRequest("POST", urls.action, data);
+    } catch(e) {
+      //TODO: Error handling
+    }
+
+    this.actions.inFlight = [];
+    this.maybeDelayedCommit();
   }
 
 }
