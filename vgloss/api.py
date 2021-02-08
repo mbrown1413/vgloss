@@ -66,24 +66,8 @@ class FileListApi(APIView):
         file_serializer = serializers.FileSerializer(qs, many=True)
         return Response(file_serializer.data)
 
+
 class FileDetailApi(generics.RetrieveAPIView):
     queryset = models.File.objects.all()
     serializer_class = serializers.FileDetailSerializer
     lookup_field = "hash"
-
-
-class FileTagsApi(GenericAPIView):
-    queryset = models.FileTag.objects.all()
-    serializer_class = serializers.FileTagSerializer
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data, many=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(status=status.HTTP_200_OK)
-
-    def delete(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data, many=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)

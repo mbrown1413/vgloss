@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Dict, Optional, cast
+from typing import List, Optional, cast
 
 from vgloss import models, serializers
 
@@ -33,14 +33,32 @@ class TagUpdate(Action):
 
         # Retrieve saved tags
         serializer = serializers.TagSerializer(models.Tag.objects.all(), many=True)
-        serialized_tags = cast(List[Dict], serializer.data)
+        serialized_tags = cast(List[dict], serializer.data)
         return [
             TagUpdate(tags=serialized_tags)
         ]
+
+@dataclass
+class FileTagUpdate(Action):
+    fileTagsToAdd: List[dict]
+    fileTagsToRemove: List[dict]
+
+    def do(self):
+        add_serializer = serializers.FileTagSerializer(data=self.fileTagsToAdd, many=True)
+        add_serializer.is_valid(raise_exception=True)
+
+        remove_serializer = serializers.FileTagSerializer(data=self.fileTagsToRemove, many=True)
+        remove_serializer.is_valid(raise_exception=True)
+
+        #TODO: Remove tags if it violates the constant that items are tagged
+        #      with parent tags implicitly, not explicitly.
+        add_serializer.save()
+        remove_serializer.delete()
 
 
 ACTION_CLASSES = {
     cls.__name__: cls for cls in [
         TagUpdate,
+        FileTagUpdate,
     ]
 }

@@ -24,7 +24,6 @@ urlpatterns = [
     path("api/action", api.Action.as_view(), name="api-action"),
     path("api/file/", api.FileListApi.as_view(), name="api-files"),
     path("api/file/<str:hash>", api.FileDetailApi.as_view(), name="api-file"),
-    path("api/filetag/", api.FileTagsApi.as_view(), name="api-file-tags"),
 
     # Files
     path("file/<str:hash>/raw", views.FileThumbnail.as_view()),

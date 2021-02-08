@@ -122,9 +122,11 @@ import GalleryGrid from './GalleryGrid.vue';
 import Tree from '../Tree.vue';
 import FileDetailModal from './FileDetailModal.vue';
 import TagEditModal from './TagEditModal.vue';
-import { getCookie, ApiRequester } from "../utils.js";
+import { ApiRequester } from "../utils.js";
 import * as urls from '../urls.js';
+import { doAction } from "../state";
 import { queryFileList } from "../state/files.js";
+import { FileTagUpdate } from "../actions.js";
 import { globalState, listFolders } from "../state";
 
 import 'bootstrap/js/dist/dropdown';
@@ -146,7 +148,6 @@ export default {
   data() {
     return {
       filesRequester: new ApiRequester(queryFileList),
-      files: [],
       folders: [],
       filteringTags: [],
       selectedItems: [],
@@ -158,7 +159,7 @@ export default {
 
     filesByName() {
       var filesByName = {};
-      for(var file of this.files) {
+      for(var file of globalState.files) {
         filesByName[file.name] = file;
       }
       return filesByName;
@@ -223,7 +224,7 @@ export default {
       }
 
       // Files
-      for(var file of this.files) {
+      for(var file of globalState.files) {
         file.thumbnail = urls.fileThumbnail(file.hash);
         items.push(file);
       }
@@ -264,9 +265,10 @@ export default {
 
     fileListParams: {
       handler(fileListParams) {
-        this.files = [];
+        globalState.files = [];
+        this.folders = [];
         this.filesRequester.request(fileListParams).then((files) => {
-          this.files = files;
+          globalState.files = files;
           this.folders = listFolders(this.selectedFolder)
         });
       },
@@ -326,54 +328,33 @@ export default {
     },
 
     _editFileTags(itemNames, tagIds, _add) {
+      // Gather data for action
       var data = [];
-
-      // Frontend edit
       for(var tagId of tagIds) {
         for(var name of itemNames) {
           var fileInfo = this.filesByName[name];
+
+          // Add tag to data if edit is needed
           if(!fileInfo) continue
-
-          var neededEdit = false;
-          if(_add && !fileInfo.tags.includes(tagId)) {
-            fileInfo.tags.push(tagId);
-            neededEdit = true;
-          } else if(!_add && fileInfo.tags.includes(tagId)) {
-            fileInfo.tags.splice(fileInfo.tags.indexOf(tagId), 1);
-            neededEdit = true;
+          var needsEdit = !fileInfo.tags.includes(tagId);
+          if(!_add) {
+            needsEdit = !needsEdit;
           }
-
-          if(neededEdit) {
+          if(needsEdit) {
             data.push({file: fileInfo.hash, tag: tagId});
           }
         }
       }
 
-      if(data.length === 0) {
-        return;
+      // Perform action
+      if(data.length >= 0) {
+        doAction(
+          new FileTagUpdate(
+            _add ? data : [],
+            _add ? [] : data,
+          )
+        );
       }
-
-      // Backend edit request
-      var xhr = new XMLHttpRequest();
-      xhr.addEventListener("load", () => {
-        if(![200, 204].includes(xhr.status)) {
-          //TODO: Error handling
-          // Undo on the frontend the edit that failed on the backend
-          for(var dataItem of data) {
-            fileInfo = this.files.find(f => f.hash === dataItem.file);
-            if(_add) {
-              fileInfo.tags.splice(fileInfo.tags.indexOf(data.tag), 1);
-            } else {
-              fileInfo.tags.push(data.tag);
-            }
-          }
-        }
-      });
-      xhr.open(_add ? "POST" : "DELETE", urls.fileTags);
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.setRequestHeader("Accept", "application/json");
-      xhr.setRequestHeader("X-CSRFToken", getCookie("csrftoken"));
-      xhr.send(JSON.stringify(data));
     },
 
   },

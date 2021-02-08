@@ -124,20 +124,18 @@ class TagSerializer(serializers.ModelSerializer):
 class FileTagListSerializer(serializers.ListSerializer):
 
     def save(self):
-        with atomic():
-            for filetag in self.validated_data:
-                models.FileTag.objects.get_or_create(
-                    file_id=filetag["file_hash"],
-                    tag_id=filetag["tag_id"],
-                )
+        for filetag in self.validated_data:
+            models.FileTag.objects.get_or_create(
+                file_id=filetag["file_hash"],
+                tag_id=filetag["tag_id"],
+            )
 
     def delete(self):
-        with atomic():
-            for filetag in self.validated_data:
-                models.FileTag.objects.filter(
-                    file_id=filetag["file_hash"],
-                    tag_id=filetag["tag_id"],
-                ).delete()
+        for filetag in self.validated_data:
+            models.FileTag.objects.filter(
+                file_id=filetag["file_hash"],
+                tag_id=filetag["tag_id"],
+            ).delete()
 
 class FileTagSerializer(serializers.ModelSerializer):
     file = serializers.CharField(source="file_hash")

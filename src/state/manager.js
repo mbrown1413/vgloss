@@ -32,7 +32,7 @@ export default class StateManager {
   _performAction(action) {
     // Read copy of state
     let newState = {}
-    for(let stateName in action.constructor.stateNeeded) {
+    for(let stateName of action.constructor.stateNeeded) {
       newState[stateName] = cloneDeep(this.state[stateName]);
     }
 
@@ -71,7 +71,7 @@ export default class StateManager {
     // Send request to perform actions on backend
     let data = this.actions.inFlight.map(a => a.serialize());
     try {
-      await apiRequest("POST", urls.action, data);
+      await apiRequest("POST", urls.action, JSON.stringify(data));
     } catch(e) {
       //TODO: Error handling
     }
