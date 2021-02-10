@@ -149,6 +149,15 @@ function pointInRect(point, rect) {
          point.y >= rect.top && point.y <= rect.bottom;
 }
 
+/* Return true if all items in given arrays are equal. */
+function arraysEqual(a, b) {
+  if(a.length !== b.length) return false;
+  for(let i=0; i<a.length; a++) {
+    if(a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
 
 /* GalleryGrid
  * Displays a grid of items with names and icon images.
@@ -487,9 +496,16 @@ export default {
       }
     },
 
-    items() {
-      // Clear selection when items change.
-      this.selectionSet([]);
+    items(newItems, oldItems) {
+      // Clear selection list of item names change.
+      // We don't want to clear on all changes, since it's perfectly fine for
+      // the parent component to change other properties, even ones we don't
+      // touch in this component.
+      let newNames = newItems.map((item) => item.name);
+      let oldNames = oldItems.map((item) => item.name);
+      if(!arraysEqual(newNames, oldNames)) {
+        this.selectionSet([]);
+      }
     },
 
   },
