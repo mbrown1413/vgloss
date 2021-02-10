@@ -1,8 +1,8 @@
 import cloneDeep from "lodash.clonedeep";
 import debounce from "lodash.debounce";
 
-import * as urls from '../urls.js';
-import { apiRequest } from "../utils.js";
+import * as urls from './urls.js';
+import { apiRequest } from "./utils.js";
 
 
 /* StateManager

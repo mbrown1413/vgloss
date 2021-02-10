@@ -27,7 +27,7 @@
  */
 import Vue from 'vue';
 
-import StateManager from "./manager.js";
+import StateManager from "./StateManager.js";
 
 /* All global state sync'd with the backend. All values are observable and vue
  * components are intended to observe them, but not mutate them directly. If

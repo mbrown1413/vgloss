@@ -125,9 +125,9 @@ import TagEditModal from './TagEditModal.vue';
 import { ApiRequester } from "../utils.js";
 import * as urls from '../urls.js';
 import { doAction } from "../state";
-import { queryFileList } from "../state/files.js";
+import { queryFileList } from "../queries.js";
 import { FileTagUpdate } from "../actions.js";
-import { globalState, listFolders } from "../state";
+import { globalState, listFolders } from "../state.js";
 
 import 'bootstrap/js/dist/dropdown';
 
